@@ -1,0 +1,79 @@
+from Domains.Abstract_State import AbstractState
+import Utils
+import math
+import copy
+
+
+class Rubik(AbstractState):
+
+    #{F(0), U(1), B(2), D(3), R(4), L(5)}
+    rotate_front = [[31, 32, 33], [45, 46, 47], [9, 10, 11], [36, 37, 38]]
+    rotate_up = [[4, 5, 6], [51, 52, 45], [18, 19, 20], [38, 39, 40]]
+    rotate_back = [[13, 14, 15], [49, 50, 51], [27, 28, 29], [40, 41, 42]]
+    rotate_down = [[22, 23, 24], [47, 48, 49], [0, 1, 2], [42, 43, 36]]
+    rotate_right = [[6, 7, 0], [15, 16, 9], [24, 25, 18], [33, 34, 27]]
+    rotate_left = [[2, 3, 4], [29, 30, 31], [20, 21, 22], [11, 12, 13]]
+    rotate_indices = [rotate_front, rotate_up, rotate_back, rotate_down, rotate_right, rotate_left]
+
+    def __init__(self, cube, g):
+        self.cube = cube
+        self.dim = int(math.sqrt(len(cube)/6))
+        assert self.dim==3, "Rubik's cube with dimensionality of 3 i.e., 3x3x6 is the nly one supported at the moment"
+        super(Rubik,self).__init__(g)
+
+    # Return a single vector from cube
+    def __str__(self):
+        ans="["
+        for n in self.cube:
+            ans += str(n) + ","
+        ans = ans[:-1] + "]"
+        return ans
+
+    def get_successors(self):
+        successors = []
+
+        for face in range(6):
+            c_cube = copy.deepcopy(self.cube)
+            # A cube move rotates one of the 6 faces 90 degrees
+            # face from {F(0), U(1), B(2), D(3), R(4), L(5)}
+            for i in range(8):
+                c_cube[i + face * 9] = self.cube[(i + 2) % 8 + face * 9]
+            for side in range(4):
+                for i1, i2 in zip(Rubik.rotate_indices[face][side], Rubik.rotate_indices[face][(side + 1) % 4]):
+                    c_cube[i1] = self.cube[i2]
+            child = Rubik(c_cube, self.g + 1)
+            successors.append(child)
+        return successors
+
+    def as_list(self):
+        return self.cube
+
+    def __eq__(self, other):
+        return str(self.cube) == str(other.cube)
+
+    def __hash__(self):
+        return hash(str(self.board))
+
+    # TODO
+    def get_h(self, goal):
+        raise NotImplementedError()
+
+    @staticmethod
+    def parse_state(string):
+        string = string[1:-1].split(',') # Change "[0,1,2,3]" to '0', '1', '2', '3'
+        cube = []
+        for n in string:
+            cube.append(int(n))
+        return Rubik(cube,0)
+
+    @staticmethod
+    def get_goal(size):
+        cube = []
+        for f in range(6):
+            for i in range(size**2):
+                cube.append(f)
+        return Rubik(cube, 0)
+
+    @staticmethod
+    def get_name():
+        return "tile"
