@@ -1,12 +1,34 @@
 from Solvers.Abstract_Solver import AbstractSolver, Statistics
 from sortedcontainers import SortedDict
 from Utils import MappedQueue
+from Domains.Abstract_State import AbstractState
+import random
 
 
 class AStar(AbstractSolver):
+    noise_decay = 0.97
 
     def __init__(self,problem=None,options=None):
-        super(AStar,self).__init__(problem,options)
+        super(AStar,self).__init__()
+        try:
+            self.h_func
+        except:
+            self.h_func = None
+        if options:
+            try:
+                AbstractState.w = float(options.weight)
+            except ValueError:
+                raise Exception('Weight must be a valid number')
+            except:
+                raise Exception('must specify weight for WA* (w=1 for A* and w=0 for UCS)')
+            assert AbstractState.w >= 0, "weight must be non negative"
+            try:
+                self.noise_std = float(options.noise)
+            except ValueError:
+                raise Exception('noise must be a valid number')
+            except:
+                raise Exception('must specify noise for WA* (n=0 for deterministic A*)')
+            assert self.noise_std >= 0 and self.noise_std <= 0.5, "noise std must be between 0 and 0.5"
 
     def solve(self,problem):
         open = MappedQueue()
@@ -14,8 +36,7 @@ class AStar(AbstractSolver):
         start = problem.start
         goal = problem.goal
 
-        if self.use_h:
-            start.set_h(goal)
+        self.set_h(start, goal)
 
         open.push(start)
         best_cost = float('inf')
@@ -26,7 +47,7 @@ class AStar(AbstractSolver):
             if pr >= best_cost:
                 self.statistics[Statistics.Distance.value] = best_cost
                 self.statistics[Statistics.Solution.value] = best_cost
-                return True
+                return goal.get_path()
 
             self.statistics[Statistics.Expanded.value] += 1
             successors = current.get_successors()
@@ -37,8 +58,7 @@ class AStar(AbstractSolver):
                     if s in closed:
                         continue
 
-                    if self.use_h:
-                        s.set_h(goal)
+                    self.set_h(s, goal)
 
                     prs = s.get_f()
                     if s in open:
@@ -49,6 +69,7 @@ class AStar(AbstractSolver):
 
                     if s == problem.goal and s.g < best_cost:
                         best_cost = s.g
+                        goal = s
 
                     s.parent = current
                     self.statistics[Statistics.Generated.value] += 1
@@ -60,5 +81,19 @@ class AStar(AbstractSolver):
         self.statistics[Statistics.Solution.value] = -1
         return False
 
+    def set_h(self,state,goal):
+        if self.h_func:
+            h = max(self.h_func(state,goal), state.get_h(goal))
+        else:
+            h = state.get_h(goal)
+        if self.noise_std > 0:
+            h = h * random.gauss(1, self.noise_std)
+        state.set_h(h)
+
     def __str__(self):
-        return "A*"
+        if AbstractState.w == 0:
+            return "UCS"
+        ans = ""
+        if AbstractState.w != 1:
+            ans += "{}h".format(AbstractState.w)
+        return ans + "A*"

@@ -4,14 +4,15 @@ import random
 
 
 class AbstractState(ABC):
+    w = 1
 
     def __init__(self, g):
         self.g = g
-        self.h = 0
+        self.h = -1
         self.parent = None
 
-    def set_h(self, goal):
-        self.h = self.get_h(goal)
+    def set_h(self, value):
+        self.h = value
 
     def random_step(self):
         successors = self.get_successors()
@@ -21,7 +22,7 @@ class AbstractState(ABC):
         return successors[r1]
 
     def get_f(self):
-        return self.g + self.h
+        return self.g + AbstractState.w * self.h
 
     def __lt__(self, other):
         return self.get_f() < other.get_f()
@@ -33,6 +34,14 @@ class AbstractState(ABC):
 
     def as_tensor(self):
         return np.array(self.as_list())
+
+    def get_path(self):
+        if self.parent is None:
+            path = [self]
+        else:
+            path = self.parent.get_path()
+            path.append(self)
+        return path
 
     @abstractmethod
     def get_h(self, goal):

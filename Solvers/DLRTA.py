@@ -17,7 +17,7 @@ class DLRTA(LRTA):
 
     def __init__(self,problem=None,options=None):
         self.buffer = set()
-        super(DLRTA, self).__init__(problem,options)
+        super(DLRTA, self).__init__()
         self.epsilon_greedy = 0.1
 
     def init_h(self,problem,options):

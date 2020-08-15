@@ -7,7 +7,7 @@ class LRTA(AbstractSolver):
         if problem:
             self.init_h(problem,options)
         self.epsilon_greedy = 0
-        super(LRTA,self).__init__(problem,options)
+        super(LRTA,self).__init__()
 
     def init_h(self,problem,options):
         self.h = {}

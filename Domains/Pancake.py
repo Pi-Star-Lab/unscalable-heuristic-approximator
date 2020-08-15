@@ -38,7 +38,7 @@ class Pancake(AbstractState):
         for i in range(len(self.stack) - 1):
             if abs(self.stack[i + 1] - self.stack[i]) > 1:
                 cost += 1
-        if self.stack[-1] != len(self.stack) - 1:
+        if self.stack[0] != 0:
             cost += 1
         return cost
 

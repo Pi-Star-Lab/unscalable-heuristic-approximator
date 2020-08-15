@@ -4,10 +4,8 @@ from enum import Enum
 
 class AbstractSolver(ABC):
 
-    def __init__(self,problem=None,options=None):
+    def __init__(self):
         self.statistics = [0] * len(Statistics)
-        if options:
-            self.use_h = options.use_heuristic
 
     def get_stat(self,problem):
         ans = '{},{}'.format(str(problem.index), str(self))
