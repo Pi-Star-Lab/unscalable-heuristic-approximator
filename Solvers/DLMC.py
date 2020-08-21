@@ -26,7 +26,11 @@ class DLMC(AbstractSolver):
         super(DLMC, self).__init__()
         self.greedy_solver = AStar()
         self.greedy_solver.__init__(problem,options)
+        self.w = 0
         print(self.greedy_solver)
+
+    def weighted_h(self, start, goal):
+        return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
 
     def init_h(self, input_dim, options):
         try:
@@ -43,16 +47,19 @@ class DLMC(AbstractSolver):
             model.add(Dense(l, activation='relu'))
         model.add(Dense(1))
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
-        model.compile(loss=weighted_loss, optimizer=Adam(lr=learning_rate))
+        model.compile(loss="mse", optimizer=Adam(lr=learning_rate))
         self.h = model
 
-    def train(self,options):
+    def train(self, options, dw = 0.05):
         self.greedy_solver.h_func = None
         self.buffer_x = deque(maxlen=DLMC.buffer_size)
         self.buffer_y = deque(maxlen=DLMC.buffer_size)
         self.memory = deque(maxlen=DLMC.buffer_size)
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
+
+        return
+        """
         for i in range(options.training_episodes):
             p = prob()
             p.generate_random(i, cls, cls.get_goal(options.training_size))
@@ -61,17 +68,17 @@ class DLMC(AbstractSolver):
             print("length of Path: {}".format(len(path)))
             path.reverse()
             for x in range(len(path)):
-                print(x, path[x].get_h(p.goal))
+                #loop through all next_states
                 self.remember(path[x], min(x, path[x].get_h(p.goal)))
             print("training episode {}/{}".format(i,options.training_episodes))
         self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_y), batch_size=DLMC.batch_size, epochs=100, verbose=1)
         print("training complete")
         #self.h.compile(loss='mse', optimizer=Adam(lr=0.00001))
-
-    def solve(self, problem):
+        """
+    def solve(self, problem, dw = 0.05, expansion_bound = 500):
         # A single run
         self.greedy_solver.__init__()
-        self.greedy_solver.h_func = self.get_h
+        self.greedy_solver.h_func = self.weighted_h
         path = self.greedy_solver.solve(problem)
         print("Path found. Length of Path: {}".format(len(path)))
         path.reverse()
@@ -80,11 +87,24 @@ class DLMC(AbstractSolver):
                 import sys
                 print("Not admissible H")
                 sys.exit(1)
+            next_states = path[x].get_successors()
+            if path[x] == problem.goal:
+                target = 0
+            else:
+                target = float("inf")
+            for next_state in next_states:
+                cost = 1 + self.get_h(next_state, problem.goal)
+                target = min(cost, target)
             #self.remember(path[x],min(x,path[x].get_h(problem.goal)))
-            self.remember(path[x],x)
-        #self.weighted_reply()
+            self.remember(path[x], target)
+            print(self.get_h(path[x], problem.goal))
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
+        print(self.statistics, "W:", self.w)
+        if self.statistics[0] < expansion_bound:
+            self.w = min(1, self.w + dw)
+        else:
+            self.w = max(0, self.w - dw)
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
     def get_h(self, state, goal):
