@@ -61,10 +61,10 @@ class DLMC(AbstractSolver):
             print("length of Path: {}".format(len(path)))
             path.reverse()
             for x in range(len(path)):
+                print(x, path[x].get_h(p.goal))
                 self.remember(path[x], min(x, path[x].get_h(p.goal)))
             print("training episode {}/{}".format(i,options.training_episodes))
-        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_y), batch_size=DLMC.batch_size, epochs=100,
-                           verbose=1)
+        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_y), batch_size=DLMC.batch_size, epochs=100, verbose=1)
         print("training complete")
         #self.h.compile(loss='mse', optimizer=Adam(lr=0.00001))
 
@@ -76,7 +76,12 @@ class DLMC(AbstractSolver):
         print("Path found. Length of Path: {}".format(len(path)))
         path.reverse()
         for x in range(len(path)):
-            self.remember(path[x],min(x,path[x].get_h(problem.goal)))
+            if path[x].get_h(problem.goal) > x:
+                import sys
+                print("Not admissible H")
+                sys.exit(1)
+            #self.remember(path[x],min(x,path[x].get_h(problem.goal)))
+            self.remember(path[x],x)
         #self.weighted_reply()
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
