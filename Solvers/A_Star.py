@@ -83,7 +83,7 @@ class AStar(AbstractSolver):
 
     def set_h(self,state,goal):
         if self.h_func:
-            h = max(self.h_func(state,goal), state.get_h(goal))
+            h = self.h_func(state,goal)
         else:
             h = state.get_h(goal)
         if self.noise_std > 0:

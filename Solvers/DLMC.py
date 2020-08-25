@@ -19,7 +19,7 @@ def weighted_loss(y_true, y_pred):
 
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
-    buffer_size = 1000000
+    buffer_size = 20000
     batch_size = 2 ** 10
 
     def __init__(self, problem=None, options=None):
@@ -27,7 +27,6 @@ class DLMC(AbstractSolver):
         self.greedy_solver = AStar()
         self.greedy_solver.__init__(problem,options)
         self.w = 0
-        print(self.greedy_solver)
 
     def weighted_h(self, start, goal):
         return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
@@ -49,6 +48,7 @@ class DLMC(AbstractSolver):
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
         model.compile(loss="mse", optimizer=Adam(lr=learning_rate))
         self.h = model
+        model.summary()
 
     def train(self, options, dw = 0.05):
         self.greedy_solver.h_func = None
@@ -75,7 +75,7 @@ class DLMC(AbstractSolver):
         print("training complete")
         #self.h.compile(loss='mse', optimizer=Adam(lr=0.00001))
         """
-    def solve(self, problem, dw = 0.05, expansion_bound = 500):
+    def solve(self, problem, dw = 0.05, expansion_bound = 3000):
         # A single run
         self.greedy_solver.__init__()
         self.greedy_solver.h_func = self.weighted_h
@@ -83,21 +83,13 @@ class DLMC(AbstractSolver):
         print("Path found. Length of Path: {}".format(len(path)))
         path.reverse()
         for x in range(len(path)):
-            if path[x].get_h(problem.goal) > x:
-                import sys
-                print("Not admissible H")
-                sys.exit(1)
-            next_states = path[x].get_successors()
             if path[x] == problem.goal:
-                target = 0
+                cost = (0, problem.goal)
             else:
-                target = float("inf")
-            for next_state in next_states:
-                cost = 1 + self.get_h(next_state, problem.goal)
-                target = min(cost, target)
+                cost = (1, problem.goal)
             #self.remember(path[x],min(x,path[x].get_h(problem.goal)))
-            self.remember(path[x], target)
-            print(self.get_h(path[x], problem.goal))
+            self.remember(path[x], cost)
+            #print(self.get_h(path[x], problem.goal), x)
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
         print(self.statistics, "W:", self.w)
@@ -116,10 +108,24 @@ class DLMC(AbstractSolver):
     def remember(self, state, h):
         self.buffer_x.append(state.as_tensor())
         self.buffer_y.append(np.array([h]))
-        self.memory.append([self.reshape(state), np.array([h])])
+        self.memory.append([state, h])
 
     def replay(self):
-        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_y), batch_size=DLMC.batch_size, epochs=1, verbose=1)
+        target = np.ndarray((len(self.buffer_y), 1), dtype=np.float64)
+        i = 0
+        for x,y in self.memory:
+            if x == y[1]:
+                target[i] = 0
+            else:
+                new_states = x.get_successors()
+                min_target_val = min([self.get_h(state, y[1]) for state in new_states])
+                target[i] = y[0] + min_target_val
+                if i < 45:
+                    print(y[0], min_target_val, end = ",   ")
+            if i < 45:
+                print(i, target[i], "actual", self.get_h(x, y[1]))
+            i += 1
+        self.h.fit(x=np.array(self.buffer_x), y=target, batch_size=DLMC.batch_size, epochs=1, verbose=1)
 
     # def weighted_reply(self):
     #     if len(self.memory) < DLMC.batch_size:
