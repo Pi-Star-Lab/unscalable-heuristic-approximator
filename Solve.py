@@ -55,6 +55,9 @@ def readCommand(argv):
     parser.add_option("-c", "--smooth", type="int", dest="smoothing_window", default=30,
                       help='smoothen observations over')
 
+    parser.add_option("-u", "--update_target", type="int", dest="update_target", default=30,
+                      help='No. of episodes after which you should sync target with model')
+
     (options, args) = parser.parse_args(argv)
     return options
 

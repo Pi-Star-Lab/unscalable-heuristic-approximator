@@ -27,6 +27,12 @@ class DLMC(AbstractSolver):
         self.greedy_solver = AStar()
         self.greedy_solver.__init__(problem,options)
         self.w = 0
+        self.counter = 0
+
+        if options is not None:
+            self.update_target = options.update_target
+        else:
+            self.update_target = 30
 
     def weighted_h(self, start, goal):
         return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
@@ -41,13 +47,19 @@ class DLMC(AbstractSolver):
         learning_rate = options.learning_rate
         # Neural Net for h values
         model = Sequential()
+        target_model = Sequential()
         model.add(Dense(layers[0], input_dim=input_dim, activation='relu'))
+        target_model.add(Dense(layers[0], input_dim=input_dim, activation='relu'))
         for l in layers[1:]:
             model.add(Dense(l, activation='relu'))
+            target_model.add(Dense(l, activation='relu'))
         model.add(Dense(1))
+        target_model.add(Dense(1))
+        target_model.set_weights(model.get_weights())
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
         model.compile(loss="mse", optimizer=Adam(lr=learning_rate))
         self.h = model
+        self.target_model = target_model
         model.summary()
 
     def train(self, options, dw = 0.05):
@@ -105,6 +117,12 @@ class DLMC(AbstractSolver):
         h = np.asscalar(self.h.predict(self.reshape(state)))
         return h
 
+    def target_predict(self, state, goal):
+        if state == goal:
+            return 0
+        h = np.asscalar(self.target_model.predict(self.reshape(state)))
+        return h
+
     def remember(self, state, h):
         self.buffer_x.append(state.as_tensor())
         self.buffer_y.append(np.array([h]))
@@ -118,7 +136,8 @@ class DLMC(AbstractSolver):
                 target[i] = 0
             else:
                 new_states = x.get_successors()
-                min_target_val = min([self.get_h(state, y[1]) for state in new_states])
+                min_target_val = min([self.target_predict(state, y[1]) for \
+                        state in new_states])
                 target[i] = y[0] + min_target_val
                 if i < 45:
                     print(y[0], min_target_val, end = ",   ")
@@ -126,7 +145,10 @@ class DLMC(AbstractSolver):
                 print(i, target[i], "actual", self.get_h(x, y[1]))
             i += 1
         self.h.fit(x=np.array(self.buffer_x), y=target, batch_size=DLMC.batch_size, epochs=1, verbose=1)
-
+        if self.counter % self.update_target == 0:
+            print("Updating Target Weights...")
+            self.target_model.set_weights(self.h.get_weights())
+        self.counter += 1
     # def weighted_reply(self):
     #     if len(self.memory) < DLMC.batch_size:
     #         return
