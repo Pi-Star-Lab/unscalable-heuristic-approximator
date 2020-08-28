@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 matplotlib.style.use('ggplot')
 #from mpl_toolkits.mplot3d import Axes3D
 
-EpisodeStats = namedtuple("Stats",["solution_cost", "expanded", "generated"])
+EpisodeStats = namedtuple("Stats",["solution_cost", "expanded", "generated", "weights"])
 BaselineStats = namedtuple("BLStats",["solution_cost", "expanded", "generated"])
 
 def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
@@ -13,9 +13,12 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     # Plot the solution cost over time
     fig1 = plt.figure(figsize=(10,5))
     cost_smoothed = pd.Series(stats.solution_cost).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(cost_smoothed, color='b', linestyle='-')
+    sol_cost_plt = plt.plot(cost_smoothed, color='b', linestyle='-', label="Learnt Heurisitic")
     bl_smoothed = pd.Series(blstates.solution_cost).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(bl_smoothed, color='r', linestyle='--')
+    sol_exp_plt = plt.plot(bl_smoothed, color='r', linestyle='--', label="Greedy")
+    weights_smoothed = pd.Series(stats.weights * 100).rolling(smoothing_window, min_periods = smoothing_window).mean()
+    plt.plot(weights_smoothed, color='g', linestyle='-', label="weights")
+    plt.legend()
     plt.xlabel("Episode")
     plt.ylabel("Solution cost (Smoothed)")
     plt.title("Solution Cost over Time (Smoothed over window size {})".format(smoothing_window))
@@ -27,9 +30,12 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     # Plot the expanded count over time
     fig2 = plt.figure(figsize=(10,5))
     expanded_smoothed = pd.Series(stats.expanded).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(expanded_smoothed, color='b', linestyle='-')
+    plt.plot(expanded_smoothed, color='b', linestyle='-', label="Learnt Heurisitic")
     bl_smoothed = pd.Series(blstates.expanded).rolling(smoothing_window, min_periods=smoothing_window).mean()
-    plt.plot(bl_smoothed, color='r', linestyle='--')
+    plt.plot(bl_smoothed, color='r', linestyle='--', label="Greedy")
+    weights_smoothed = pd.Series(stats.weights * 1000).rolling(smoothing_window, min_periods = smoothing_window).mean()
+    plt.plot(weights_smoothed, color='g', linestyle='-', label="weights")
+    plt.legend()
     plt.xlabel("Episode")
     plt.ylabel("Expanded count (Smoothed)")
     plt.title("Expanded count over Time (Smoothed over window size {})".format(smoothing_window))

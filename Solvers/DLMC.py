@@ -13,6 +13,13 @@ from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 import keras.backend as K
 
+import tensorflow as tf
+import logging
+
+import os
+os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
+tf.get_logger().setLevel(logging.ERROR)
+os.environ['KMP_WARNINGS'] = '0'
 
 def weighted_loss(y_true, y_pred):
     return K.mean(K.square((y_pred - y_true)/(y_true + 1)) , axis=-1)
@@ -104,7 +111,7 @@ class DLMC(AbstractSolver):
             #print(self.get_h(path[x], problem.goal), x)
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
-        print(self.statistics, "W:", self.w)
+        self.statistics[Statistics.Weights.value] = self.w
         if self.statistics[0] < expansion_bound:
             self.w = min(1, self.w + dw)
         else:
