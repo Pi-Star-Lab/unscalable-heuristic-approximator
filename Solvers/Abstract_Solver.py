@@ -28,6 +28,13 @@ class AbstractSolver(ABC):
             ans += ","+s.name
         return ans
 
+    def load(**kwargs):
+        raise Exception("No Learning, Cannot load")
+
+    def save(**kwargs):
+        print("No Learning, Nothing to save")
+
+
 
 class Statistics(Enum):
     Expanded = 0

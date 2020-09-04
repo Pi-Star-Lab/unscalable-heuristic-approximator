@@ -15,6 +15,7 @@ import keras.backend as K
 
 import tensorflow as tf
 import logging
+import pickle
 
 import os
 os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
@@ -36,10 +37,14 @@ class DLMC(AbstractSolver):
         self.w = 0
         self.counter = 0
 
+        ## Debuging code ###
+        self.optimal_states = []
+        ## end ####
+
         if options is not None:
             self.update_target = options.update_target
         else:
-            self.update_target = 30
+            self.update_target = 100
 
     def weighted_h(self, start, goal):
         return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
@@ -100,7 +105,13 @@ class DLMC(AbstractSolver):
         self.greedy_solver.h_func = self.weighted_h
         path = self.greedy_solver.solve(problem)
         print("Path found. Length of Path: {}".format(len(path)))
+
+        #### Debug code ####
+        if len(path) <= 17:
+            self.optimal_states = copy.deepcopy(path)
+        #### end here #####
         path.reverse()
+
         for x in range(len(path)):
             if path[x] == problem.goal:
                 cost = (0, problem.goal)
@@ -123,6 +134,24 @@ class DLMC(AbstractSolver):
             return 0
         h = np.asscalar(self.h.predict(self.reshape(state)))
         return h
+
+    def save(self, model_path, memory):
+        self.h.save(model_path + '.pkl')
+        f = open(memory + ".pkl", "wb")
+        pickle.dump(self.memory, f)
+        f = open(memory + "_x.pkl", "wb")
+        pickle.dump(self.buffer_x, f)
+        f = open(memory + "_y.pkl", "wb")
+        pickle.dump(self.buffer_y, f)
+
+    def load(self, model_path, memory):
+        self.h = keras.models.load_model(model_path + ".pkl")
+        f = open(memory + '.pkl', "rb")
+        self.memory = pickle.load(f)
+        f = open(memory + "_x.pkl", "rb")
+        self.buffer_x = pickle.load(f)
+        f = open(memory + "_y.pkl", "rb")
+        self.buffer_y = pickle.load(f)
 
     def target_predict(self, state, goal):
         if state == goal:
@@ -156,6 +185,7 @@ class DLMC(AbstractSolver):
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
         self.counter += 1
+        self.h.save("Models/model_dump_" + str(self.counter) + ".pkl")
     # def weighted_reply(self):
     #     if len(self.memory) < DLMC.batch_size:
     #         return
