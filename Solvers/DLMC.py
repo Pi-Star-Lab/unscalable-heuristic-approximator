@@ -74,11 +74,11 @@ class DLMC(AbstractSolver):
         self.target_model = target_model
         model.summary()
 
-    def train(self, options, dw = 0.05):
+    def train(self, options):
         self.greedy_solver.h_func = None
         self.buffer_x = deque(maxlen=DLMC.buffer_size)
-        self.buffer_y = deque(maxlen=DLMC.buffer_size)
         self.memory = deque(maxlen=DLMC.buffer_size)
+        self.buffer_target = deque(maxlen=DLMC.buffer_size) #just to save computational speed!
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
 
@@ -99,7 +99,7 @@ class DLMC(AbstractSolver):
         print("training complete")
         #self.h.compile(loss='mse', optimizer=Adam(lr=0.00001))
         """
-    def solve(self, problem, dw = 0.05, expansion_bound = 3000):
+    def solve(self, problem, dw = 0.02, expansion_bound = 3000):
         # A single run
         self.greedy_solver.__init__()
         self.greedy_solver.h_func = self.weighted_h
@@ -135,14 +135,61 @@ class DLMC(AbstractSolver):
         h = np.asscalar(self.h.predict(self.reshape(state)))
         return h
 
+    def target_predict(self, state, goal):
+        if state == goal:
+            return 0
+        h = np.asscalar(self.target_model.predict(self.reshape(state)))
+        return h
+
+    def target_weighted_predict(self, state, goal):
+        return self.w * self.target_predict(start, goal) + \
+                (1 - self.w) * start.get_h(goal)
+
+    def get_target_value(self, state, goal):
+        new_states = state.get_successors()
+        #return min([self.target_weighted_predict(state, goal) for state in new_states])
+        return min([self.target_predict(state, goal) for state in new_states])
+
+    def remember(self, state, h):
+        self.buffer_x.append(state.as_tensor())
+        self.memory.append([state, h])
+        min_target_val = self.get_target_value(state, h[1])
+        self.buffer_target.append(h[0] + min_target_val)
+
+    def replay(self):
+        self.counter += 1
+        if self.counter % self.update_target == 0:
+            print("Updating Target Weights...")
+            self.target_model.set_weights(self.h.get_weights())
+            self.h.save("Models/model_dump_" + str(self.counter) + ".pkl")
+            i = 0
+            for x,y in self.memory:
+                if x == y[1]:
+                    self.buffer_target[i] = 0
+                else:
+                    min_target_val = self.get_target_value(x, y[1])
+                    self.buffer_target[i] = y[0] + min_target_val
+                    if i < 45:
+                        print(y[0], min_target_val, end = ",   ")
+                if i < 45:
+                    print(i, self.buffer_target[i], "actual", self.get_h(x, y[1]))
+                i += 1
+
+        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_target), batch_size=DLMC.batch_size, epochs=1, verbose=1)
+
+    def reshape(self, state):
+        x = state.as_tensor()
+        return np.reshape(state.as_tensor(), [1, len(x)])
+
     def save(self, model_path, memory):
         self.h.save(model_path + '.pkl')
         f = open(memory + ".pkl", "wb")
         pickle.dump(self.memory, f)
         f = open(memory + "_x.pkl", "wb")
         pickle.dump(self.buffer_x, f)
-        f = open(memory + "_y.pkl", "wb")
-        pickle.dump(self.buffer_y, f)
+
+        #f = open(memory + "_y.pkl", "wb")
+        #pickle.dump(self.buffer_y, f)
 
     def load(self, model_path, memory):
         self.h = keras.models.load_model(model_path + ".pkl")
@@ -150,56 +197,9 @@ class DLMC(AbstractSolver):
         self.memory = pickle.load(f)
         f = open(memory + "_x.pkl", "rb")
         self.buffer_x = pickle.load(f)
-        f = open(memory + "_y.pkl", "rb")
-        self.buffer_y = pickle.load(f)
 
-    def target_predict(self, state, goal):
-        if state == goal:
-            return 0
-        h = np.asscalar(self.target_model.predict(self.reshape(state)))
-        return h
-
-    def remember(self, state, h):
-        self.buffer_x.append(state.as_tensor())
-        self.buffer_y.append(np.array([h]))
-        self.memory.append([state, h])
-
-    def replay(self):
-        target = np.ndarray((len(self.buffer_y), 1), dtype=np.float64)
-        i = 0
-        for x,y in self.memory:
-            if x == y[1]:
-                target[i] = 0
-            else:
-                new_states = x.get_successors()
-                min_target_val = min([self.target_predict(state, y[1]) for \
-                        state in new_states])
-                target[i] = y[0] + min_target_val
-                if i < 45:
-                    print(y[0], min_target_val, end = ",   ")
-            if i < 45:
-                print(i, target[i], "actual", self.get_h(x, y[1]))
-            i += 1
-        self.h.fit(x=np.array(self.buffer_x), y=target, batch_size=DLMC.batch_size, epochs=1, verbose=1)
-        if self.counter % self.update_target == 0:
-            print("Updating Target Weights...")
-            self.target_model.set_weights(self.h.get_weights())
-        self.counter += 1
-        self.h.save("Models/model_dump_" + str(self.counter) + ".pkl")
-    # def weighted_reply(self):
-    #     if len(self.memory) < DLMC.batch_size:
-    #         return
-    #
-    #     samples = random.sample(self.memory, 32)
-    #     for sample in samples:
-    #         state, h = sample
-    #         self.h.optimizer.lr = 0.000001 / (h+1)
-    #         #self.h.optimizer.lr = 0.000001
-    #         self.h.fit(state, h, epochs=1, verbose=0)
-
-    def reshape(self, state):
-        x = state.as_tensor()
-        return np.reshape(state.as_tensor(), [1, len(x)])
+        #f = open(memory + "_y.pkl", "rb")
+        #self.buffer_y = pickle.load(f)
 
     def __str__(self):
         return "DLMC"

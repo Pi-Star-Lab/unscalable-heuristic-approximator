@@ -12,6 +12,7 @@ import tqdm
 from tqdm import tqdm
 import numpy as np
 import Plotting
+import pickle
 
 resultdir = "Results/"
 problemdir = "Problem_instances/"
@@ -131,7 +132,7 @@ if __name__ == '__main__':
 
                 line = problem_file.readline()
     Plotting.plot_stats(stats, blstats, rstats, smoothing_window = options.smoothing_window)
-    import pickle
+
     f = open("optimal_states.list", "wb")
     #pickle.dump(solver.memory, f)
     pickle.dump(solver.optimal_states, f)
@@ -142,4 +143,3 @@ if __name__ == '__main__':
         print(state.as_tensor(), solver.get_h(state, opt_states[-1]))
     solver.save("Models/final_model_2", "memory_2")
     #f.write(json.dumps(solver.optimal_states))
-
