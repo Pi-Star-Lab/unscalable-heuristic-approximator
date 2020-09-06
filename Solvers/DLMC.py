@@ -142,13 +142,12 @@ class DLMC(AbstractSolver):
         return h
 
     def target_weighted_predict(self, state, goal):
-        return self.w * self.target_predict(start, goal) + \
-                (1 - self.w) * start.get_h(goal)
+        return self.w * self.target_predict(state, goal) + \
+                (1 - self.w) * state.get_h(goal)
 
     def get_target_value(self, state, goal):
         new_states = state.get_successors()
-        #return min([self.target_weighted_predict(state, goal) for state in new_states])
-        return min([self.target_predict(state, goal) for state in new_states])
+        return min([self.target_weighted_predict(state, goal) for state in new_states])
 
     def remember(self, state, h):
         self.buffer_x.append(state.as_tensor())
