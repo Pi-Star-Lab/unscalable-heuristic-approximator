@@ -27,13 +27,13 @@ def weighted_loss(y_true, y_pred):
 
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
-    buffer_size = 20000
+    buffer_size = 20000 * 5
     batch_size = 2 ** 10
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
         self.greedy_solver = AStar()
-        self.greedy_solver.__init__(problem,options)
+        self.greedy_solver.__init__(problem,options, return_expanded = True)
         self.w = 0
         self.counter = 0
 
@@ -101,24 +101,24 @@ class DLMC(AbstractSolver):
         """
     def solve(self, problem, dw = 0.02, expansion_bound = 3000):
         # A single run
-        self.greedy_solver.__init__()
+        self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
-        path = self.greedy_solver.solve(problem)
+        path,expanded = self.greedy_solver.solve(problem)
         print("Path found. Length of Path: {}".format(len(path)))
 
         #### Debug code ####
         if len(path) <= 17:
             self.optimal_states = copy.deepcopy(path)
         #### end here #####
-        path.reverse()
+        expanded.reverse()
 
-        for x in range(len(path)):
-            if path[x] == problem.goal:
+        for x in range(len(expanded)):
+            if expanded[x] == problem.goal:
                 cost = (0, problem.goal)
             else:
                 cost = (1, problem.goal)
             #self.remember(path[x],min(x,path[x].get_h(problem.goal)))
-            self.remember(path[x], cost)
+            self.remember(expanded[x], cost)
             #print(self.get_h(path[x], problem.goal), x)
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
@@ -157,7 +157,9 @@ class DLMC(AbstractSolver):
 
     def replay(self):
         self.counter += 1
-        if self.counter % self.update_target == 0:
+        if self.counter % self.update_target == 0 or \
+                len(self.buffer_target) != len(self.memory):
+
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
             self.h.save("Models/model_dump_" + str(self.counter) + ".pkl")
@@ -186,19 +188,22 @@ class DLMC(AbstractSolver):
         pickle.dump(self.memory, f)
         f = open(memory + "_x.pkl", "wb")
         pickle.dump(self.buffer_x, f)
-
+        f = open(memory + "_target.pkl", "wb")
+        pickle.dump(self.buffer_target, f)
         #f = open(memory + "_y.pkl", "wb")
         #pickle.dump(self.buffer_y, f)
 
     def load(self, model_path, memory):
+
+        print("Loading and resuming weights")
         self.h = keras.models.load_model(model_path + ".pkl")
+        self.target_model = keras.models.load_model(model_path + ".pkl")
         f = open(memory + '.pkl', "rb")
         self.memory = pickle.load(f)
         f = open(memory + "_x.pkl", "rb")
         self.buffer_x = pickle.load(f)
-
-        #f = open(memory + "_y.pkl", "rb")
-        #self.buffer_y = pickle.load(f)
+        f = open(memory + "_target.pkl", "rb")
+        self.buffer_target = pickle.load(f)
 
     def __str__(self):
         return "DLMC"

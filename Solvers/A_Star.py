@@ -8,8 +8,9 @@ import random
 class AStar(AbstractSolver):
     noise_decay = 0.97
 
-    def __init__(self,problem=None,options=None):
+    def __init__(self,problem=None,options=None, return_expanded = False):
         super(AStar,self).__init__()
+        self.return_expanded = return_expanded
         try:
             self.h_func
         except:
@@ -36,6 +37,8 @@ class AStar(AbstractSolver):
         start = problem.start
         goal = problem.goal
 
+        expanded = []
+
         self.set_h(start, goal)
 
         open.push(start)
@@ -43,11 +46,17 @@ class AStar(AbstractSolver):
 
         while len(open) > 0:
             current = open.pop()
+            if self.return_expanded:
+                expanded.append(current)
             pr = current.get_f()
             if pr >= best_cost:
                 self.statistics[Statistics.Distance.value] = best_cost
                 self.statistics[Statistics.Solution.value] = best_cost
-                return goal.get_path()
+
+                if self.return_expanded:
+                    return goal.get_path(), expanded
+                else:
+                    return goal.get_path()
 
             self.statistics[Statistics.Expanded.value] += 1
             successors = current.get_successors()
