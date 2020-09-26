@@ -13,7 +13,8 @@ from tqdm import tqdm
 import numpy as np
 import Plotting
 import pickle
-
+import tensorflow as tf
+from keras import backend as K
 resultdir = "Results/"
 problemdir = "Problem_instances/"
 # register arguments and set default values
@@ -62,17 +63,17 @@ def readCommand(argv):
     return options
 
 
-def run_baseline(blsolver, problem, options, blstats, l):
+def run_baseline(blsolver, problem, options, blstats, idx):
     blsolver.__init__(problem, options)
     blsolver.solve(problem)
-    blstats.solution_cost[l] = blsolver.statistics[Statistics.Solution.value]
-    blstats.expanded[l] = blsolver.statistics[Statistics.Expanded.value]
-    blstats.generated[l] = blsolver.statistics[Statistics.Generated.value]
+    blstats.solution_cost[idx] = blsolver.statistics[Statistics.Solution.value]
+    blstats.expanded[idx] = blsolver.statistics[Statistics.Expanded.value]
+    blstats.generated[idx] = blsolver.statistics[Statistics.Generated.value]
 
-def update_ratio(stats, blstats, l, rstats):
-    rstats.solution_cost[l] = float(stats.solution_cost[l])/blstats.solution_cost[l]
-    rstats.expanded[l] = float(stats.expanded[l])/blstats.expanded[l]
-    rstats.generated[l] = float(stats.generated[l])/blstats.generated[l]
+def update_ratio(stats, blstats, idx, rstats):
+    rstats.solution_cost[idx] = float(stats.solution_cost[idx])/blstats.solution_cost[idx]
+    rstats.expanded[idx] = float(stats.expanded[idx])/blstats.expanded[idx]
+    rstats.generated[idx] = float(stats.generated[idx])/blstats.generated[idx]
 
 # -p tile4 -o res -s dlmc -w 10 -e 100 -r 0.1 -l [24,24] -t 100 -a tile -b 4
 if __name__ == '__main__':
@@ -84,6 +85,13 @@ if __name__ == '__main__':
             result_file.write(sol.get_out_header()+'\n')
 
     random.seed(options.seed)
+    os.environ['PYTHONHASHSEED']=str(options.seed)
+    np.random.seed(options.seed)
+    tf.random.set_random_seed(options.seed)
+    session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
+    sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
+    K.set_session(sess)
+
     solver = avs.get_solver_class(options.solver)()
     if options.training_episodes > 0:
         solver.train(options)
@@ -105,21 +113,35 @@ if __name__ == '__main__':
         expanded=np.zeros(problem_count * options.episodes),
         generated=np.zeros(problem_count * options.episodes))
 
+    #f = open("optimal_states.list", "rb")
+    #solver.load("Models/pancake7_5/weights/model_dump_7000", "Models/pancake7_5/buffer/memory_10k_5_7000")
+    #opt_states = pickle.load(f)
+    problem_no = 0
+
+    #### Debug code delete this #####
+    #options.episodes += 7000
+    ################################
+
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
         with open(os.path.join(resultdir, options.outfile + '.csv'), 'a+') as result_file:
             line = problem_file.readline()
             p = prob()
+
             l = 0
-            while line and l < options.training_episodes:
+            while line and l < options.training_episodes * options.episodes:
                 p.read_in(line)
                 print("Solving problem #{}: {}".format(l,p))
                 solver.__init__(p,options)
-                for e in (range(options.episodes)):
+                #solver.w = 0.9
+                #solver.optimal_states = opt_states
+                for e in range(0, (options.episodes)):
                     print("Running episode {}".format(e+1))
                     solver.solve(p)
                     result_file.write(str(e) + ',' + solver.get_stat(p) + '\n')
 
-                    # Update statistics
+                    if e == 1:
+                        solver.save("seed_2_e_1_model", "seed_2_e_1")
+                        # Update statistics
                     stats.solution_cost[l] = solver.statistics[Statistics.Solution.value]
                     stats.expanded[l] = solver.statistics[Statistics.Expanded.value]
                     stats.generated[l] = solver.statistics[Statistics.Generated.value]
@@ -129,17 +151,18 @@ if __name__ == '__main__':
                     run_baseline(blsolver, p, options, blstats, l)
                     update_ratio(stats,blstats,l,rstats)
                     l = l + 1
-
                 line = problem_file.readline()
+            problem_no += 1
     Plotting.plot_stats(stats, blstats, rstats, smoothing_window = options.smoothing_window)
 
-    f = open("optimal_states.list", "wb")
-    #pickle.dump(solver.memory, f)
-    pickle.dump(solver.optimal_states, f)
+    #f = open("optimal_states.list", "wb")
+    #pickle.dump(solver.optimal_states, f)
 
-    f = open("optimal_states.list", "rb")
-    opt_states = pickle.load(f)
-    for state in opt_states:
-        print(state.as_tensor(), solver.get_h(state, opt_states[-1]))
-    solver.save("Models/final_model_2", "memory_2")
+    #f = open("optimal_states.list", "rb")
+    #opt_states = solver.optimal_states#pickle.load(f)
+    #for state in opt_states:
+    #    print(state.as_tensor(), solver.get_h(state, opt_states[-1]))
+    #solver.save("Models_tiles/10k_4", "memory_10k_4")
+    #print(solver.initial_state_hval)
+    #print(solver.final_state_hval)
     #f.write(json.dumps(solver.optimal_states))
