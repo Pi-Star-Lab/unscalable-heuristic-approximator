@@ -13,8 +13,8 @@ from tqdm import tqdm
 import numpy as np
 import Plotting
 import pickle
-import tensorflow as tf
-from keras import backend as K
+import torch
+
 resultdir = "Results/"
 problemdir = "Problem_instances/"
 # register arguments and set default values
@@ -87,10 +87,7 @@ if __name__ == '__main__':
     random.seed(options.seed)
     os.environ['PYTHONHASHSEED']=str(options.seed)
     np.random.seed(options.seed)
-    tf.random.set_random_seed(options.seed)
-    session_conf = tf.ConfigProto(intra_op_parallelism_threads=1, inter_op_parallelism_threads=1)
-    sess = tf.Session(graph=tf.get_default_graph(), config=session_conf)
-    K.set_session(sess)
+    torch.manual_seed(options.seed)
 
     solver = avs.get_solver_class(options.solver)()
     if options.training_episodes > 0:

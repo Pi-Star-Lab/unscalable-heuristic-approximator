@@ -1,9 +1,5 @@
 from Solvers.Abstract_Solver import AbstractSolver, Statistics
 import random
-from keras.models import Sequential
-import keras.models
-from keras.layers import Dense
-from keras.optimizers import Adam,SGD
 import numpy as np
 import Utils
 from collections import deque
@@ -11,7 +7,7 @@ from Solvers.A_Star import AStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
-import keras.backend as K
+from FCNN import FCNN
 
 import tensorflow as tf
 import logging
@@ -60,23 +56,16 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = Sequential()
-        target_model = Sequential()
-        model.add(Dense(layers[0], input_dim=input_dim, activation='relu'))
-        target_model.add(Dense(layers[0], input_dim=input_dim, activation='relu'))
-        for l in layers[1:]:
-            model.add(Dense(l, activation='relu'))
-            target_model.add(Dense(l, activation='relu'))
-        model.add(Dense(1))
-        target_model.add(Dense(1))
+        model = FCNN([input_dim] + layers + [1])
+        target_model = FCNN([input_dim] + layers + [1])
+
         target_model.set_weights(model.get_weights())
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
-        model.compile(loss="mse", optimizer=SGD(lr=learning_rate))
+        model.compile(lr=learning_rate)
         self.h = model
 
         model.save("seed_2_model_0.pkl")
         self.target_model = target_model
-        model.summary()
 
     def train(self, options):
         self.greedy_solver.h_func = None
@@ -189,7 +178,7 @@ class DLMC(AbstractSolver):
                     print(i, self.buffer_target[i], "actual", self.get_h(x, y[1]))
                 i += 1
 
-        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_target), batch_size=DLMC.batch_size, epochs=1, verbose=1, shuffle=False)
+        self.h.run_epoch(x=np.array(self.buffer_x), y=np.array(self.buffer_target), batch_size=DLMC.batch_size, verbose=1)
 
     def reshape(self, state):
         x = state.as_tensor()

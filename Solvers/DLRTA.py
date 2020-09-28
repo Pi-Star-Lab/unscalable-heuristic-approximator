@@ -1,7 +1,4 @@
-from keras.models import Sequential
-import keras.models
-from keras.layers import Dense
-from keras.optimizers import Adam
+from FCNN import FCNN
 from Solvers.LRTA import LRTA
 import numpy as np
 import random
@@ -30,14 +27,10 @@ class DLRTA(LRTA):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for Deep-LRTA
-        model = Sequential()
-        model.add(Dense(layers[0], input_dim = input_dim, activation='relu'))
-        for l in layers[1:]:
-            model.add(Dense(l, activation='relu'))
-        model.add(Dense(1))
-        model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
+        model = FCNN([input_dim] + layers + [1])
+        model.compile(lr=learning_rate)
         self.h = model
-        self.h_target = None
+        self.h_target = FCNN([input_dim] + layers + [1])
         self.count_set = 0
 
     def get_h(self,state,use_h,goal):
@@ -59,11 +52,10 @@ class DLRTA(LRTA):
             self.buffer.add(state)
         self.count_set += 1
         target_h = h
-        self.h.fit(x=self.to_tensor(state), y=np.array([target_h]), epochs=1, verbose=0)
-        self.h.fit(x=self.to_tensor(problem.goal), y=np.array([0]), epochs=1, verbose=0)
+        self.h.run_epoch(x=self.to_tensor(state), y=np.array([target_h]), verbose=1)
+        self.h.run_epoch(x=self.to_tensor(problem.goal), y=np.array([0]), verbose=1)
         self.replay(problem)
         if self.count_set % self.clone_model_every == 0:
-            self.h_target = keras.models.clone_model(self.h)
             self.h_target.set_weights(self.h.get_weights())
 
     def replay(self, problem):
@@ -80,7 +72,7 @@ class DLRTA(LRTA):
                 # print("Goal: before {}".format(self.get_h(state,self.use_h,problem.goal)))
                 target_h = 0
             # print("target = {}".format(target_h))
-            self.h.fit(x=self.to_tensor(state), y=np.array([target_h]), epochs=1, verbose=0)
+            self.h.run_epoch(x=self.to_tensor(state), y=np.array([target_h]), verbose=1)
             # print("After {}".format(self.get_h(state,self.use_h,problem.goal)))
             # print("-----------------")
 
