@@ -136,9 +136,7 @@ if __name__ == '__main__':
                     solver.solve(p)
                     result_file.write(str(e) + ',' + solver.get_stat(p) + '\n')
 
-                    if e == 1:
-                        solver.save("seed_2_e_1_model", "seed_2_e_1")
-                        # Update statistics
+                    # Update statistics
                     stats.solution_cost[l] = solver.statistics[Statistics.Solution.value]
                     stats.expanded[l] = solver.statistics[Statistics.Expanded.value]
                     stats.generated[l] = solver.statistics[Statistics.Generated.value]

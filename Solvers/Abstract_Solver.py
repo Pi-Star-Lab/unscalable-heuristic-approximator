@@ -21,6 +21,9 @@ class AbstractSolver(ABC):
     def __str__(self):
         pass
 
+    def train(self, options):
+        pass
+
     @staticmethod
     def get_out_header():
         ans = "Episode,Problem index,solver"

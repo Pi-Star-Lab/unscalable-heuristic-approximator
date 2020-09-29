@@ -9,14 +9,9 @@ from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 from FCNN import FCNN
 
-import tensorflow as tf
 import logging
 import pickle
-
 import os
-os.environ['TF_CPP_MIN_LOG_LEVEL'] = '3'
-tf.get_logger().setLevel(logging.ERROR)
-os.environ['KMP_WARNINGS'] = '0'
 
 def weighted_loss(y_true, y_pred):
     return K.mean(K.square((y_pred - y_true)/(y_true + 1)) , axis=-1)
