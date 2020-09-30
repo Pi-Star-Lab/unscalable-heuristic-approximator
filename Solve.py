@@ -56,6 +56,8 @@ def readCommand(argv):
     parser.add_option("-c", "--smooth", type="int", dest="smoothing_window", default=30,
                       help='smoothen observations over')
 
+    parser.add_option("-m", "--solver_dump_path", type="str", dest="save_path",
+            default=".", help='Path to save checkpoints')
     parser.add_option("-u", "--update_target", type="int", dest="update_target", default=30,
                       help='No. of episodes after which you should sync target with model')
 

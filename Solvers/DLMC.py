@@ -59,7 +59,6 @@ class DLMC(AbstractSolver):
         model.compile(lr=learning_rate)
         self.h = model
 
-        model.save("seed_2_model_0.pkl")
         self.target_model = target_model
 
     def train(self, options):
@@ -69,24 +68,9 @@ class DLMC(AbstractSolver):
         self.buffer_target = deque(maxlen=DLMC.buffer_size) #just to save computational speed!
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
-
+        self.save_path = options.save_path
         return
-        """
-        for i in range(options.training_episodes):
-            p = prob()
-            p.generate_random(i, cls, cls.get_goal(options.training_size))
-            self.greedy_solver.__init__(p,options)
-            path = self.greedy_solver.solve(p)
-            print("length of Path: {}".format(len(path)))
-            path.reverse()
-            for x in range(len(path)):
-                #loop through all next_states
-                self.remember(path[x], min(x, path[x].get_h(p.goal)))
-            print("training episode {}/{}".format(i,options.training_episodes))
-        self.h.fit(x=np.array(self.buffer_x), y=np.array(self.buffer_y), batch_size=DLMC.batch_size, epochs=100, verbose=1)
-        print("training complete")
-        #self.h.compile(loss='mse', optimizer=Adam(lr=0.00001))
-        """
+
     def solve(self, problem, dw = 0.02, expansion_bound = 500):
         # A single run
         self.greedy_solver.__init__(return_expanded = True)
@@ -157,9 +141,13 @@ class DLMC(AbstractSolver):
             #        self.optimal_states[-1]))
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
-            self.save("Models/pancake7_seed_test_1/weights/model_dump_{}".format(self.counter),
-                    "Models/pancake7_seed_test_1/buffer/memory_10k_5_{}".format(self.counter))
-            #self.h.save("Models/model_dump_" + str(self.counter) + ".pkl")
+
+            model_path =  os.path.join(self.save_path, "weights", \
+                    "model_dump_{}".format(self.counter))
+            buffer_path =  os.path.join(self.save_path, "buffer", \
+                    "memory_{}".format(self.counter))
+            self.save(model_path, buffer_path)
+
             i = 0
             for x,y in self.memory:
                 if x == y[1]:
