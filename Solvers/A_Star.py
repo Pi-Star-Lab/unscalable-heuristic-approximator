@@ -38,6 +38,7 @@ class AStar(AbstractSolver):
         goal = problem.goal
 
         expanded = []
+        self.statistics[Statistics.Expanded.value] = 0
 
         self.set_h(start, goal)
 
