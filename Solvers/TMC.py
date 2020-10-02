@@ -23,12 +23,12 @@ class TMC(AbstractSolver):
         self.H = defaultdict(int)
         self.counter = defaultdict(int)
 
-    def solve(self, problem):
+    def solve(self, problem, expansion_bound = 100, dw = 0.02):
 
-        self.greedy_solver.__init__(return_expanded = False)
-        self.greedy_solver.h_func = self.get_h
+        self.greedy_solver.__init__(return_expanded = True)
+        self.greedy_solver.h_func = self.weighted_h
 
-        path = self.greedy_solver.solve(problem)
+        path, expanded = self.greedy_solver.solve(problem)
 
         print("Path found. Length of Path: {}".format(len(path)))
 
@@ -38,11 +38,20 @@ class TMC(AbstractSolver):
             self.H[state] = (1 - self.lr) * self.H[state] + \
                     self.lr * x
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
-        self.statistics[Statistics.Weights.value] = 0
+        self.statistics[Statistics.Weights.value] = self.w
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
+        if self.statistics[0] < expansion_bound:
+            self.w = min(1, self.w + dw)
+        else:
+            self.w = max(0, self.w - dw)
 
     def get_h(self, state, goal):
         return self.H[state]
+
+    def weighted_h(self, start, goal):
+        if start == goal:
+            return 0
+        return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
 
     def train(self, options):
         cls = prob.get_domain_class(options.training_domain)
