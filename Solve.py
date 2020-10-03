@@ -33,7 +33,7 @@ def readCommand(argv):
                       help='solver from ' + str(avs.solvers))
     parser.add_option("-e", "--episodes", type="int", dest="episodes", default=1,
                       help='number of episodes for solving each problem instance. relevant for h learning algorithms')
-    parser.add_option("-l", "--layers", dest="layers", type="string", default="[30]",
+    parser.add_option("-l", "--layers", dest="layers", type="string",
                       help='size of hidden layers in a Deep neural net. e.g., "[10,15]" creates a net where the'
                            'input layer is connected to a layer of size 10 that is connected to a layer of size 15'
                            ' that is connected to the output')
