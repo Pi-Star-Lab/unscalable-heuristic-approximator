@@ -77,13 +77,6 @@ class DLMC(AbstractSolver):
         self.greedy_solver.h_func = self.weighted_h
         path,expanded = self.greedy_solver.solve(problem)
 
-
-        ###### Debug Code ######
-        """
-        if len(path) == 5:
-            self.optimal_states = path
-        """
-        ########
         print("Path found. Length of Path: {}".format(len(path)))
 
         expanded.reverse()
@@ -93,9 +86,7 @@ class DLMC(AbstractSolver):
                 cost = (0, problem.goal)
             else:
                 cost = (1, problem.goal)
-            #self.remember(path[x],min(x,path[x].get_h(problem.goal)))
             self.remember(expanded[x], cost)
-            #print(self.get_h(path[x], problem.goal), x)
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
         self.statistics[Statistics.Weights.value] = self.w
@@ -121,9 +112,12 @@ class DLMC(AbstractSolver):
         return self.w * self.target_predict(state, goal) + \
                 (1 - self.w) * state.get_h(goal)
 
+    def target_bounded_predict(self, state, goal):
+        return max(self.target_predict(state, goal), state.get_h(goal))
+
     def get_target_value(self, state, goal):
         new_states = state.get_successors()
-        return min([self.target_weighted_predict(state, goal) for state in new_states])
+        return min([self.target_bounded_predict(state, goal) for state in new_states])
 
     def remember(self, state, h):
         self.buffer_x.append(state.as_tensor())
@@ -175,8 +169,6 @@ class DLMC(AbstractSolver):
         pickle.dump(self.buffer_x, f)
         f = open(memory + "_target.pkl", "wb")
         pickle.dump(self.buffer_target, f)
-        #f = open(memory + "_y.pkl", "wb")
-        #pickle.dump(self.buffer_y, f)
 
     def load(self, model_path, memory):
 
