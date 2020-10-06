@@ -23,9 +23,9 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Solution cost (Smoothed)")
     plt.title("Solution Cost over Time (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig1)
+        plt.close()
     else:
-        plt.show(fig1)
+        plt.show()
 
     # Plot the expanded count over time
     fig2 = plt.figure(figsize=(10,5))
@@ -40,9 +40,9 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Expanded count (Smoothed)")
     plt.title("Expanded count over Time (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig2)
+        plt.close()
     else:
-        plt.show(fig2)
+        plt.show()
 
     # Plot the generated count over time
     fig3 = plt.figure(figsize=(10,5))
@@ -54,9 +54,9 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Generated count (Smoothed)")
     plt.title("Generated count over Time (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig3)
+        plt.close()
     else:
-        plt.show(fig3)
+        plt.show()
 
     # Plot the solution cost over time
     fig4 = plt.figure(figsize=(10, 5))
@@ -66,9 +66,9 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Solution cost ratio (Smoothed)")
     plt.title("Solution Cost ratio over Time  (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig4)
+        plt.close()
     else:
-        plt.show(fig4)
+        plt.show()
 
     # Plot the expanded count over time
     fig5 = plt.figure(figsize=(10, 5))
@@ -78,9 +78,9 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Expanded count ratio (Smoothed)")
     plt.title("Expanded count ratio over Time (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig5)
+        plt.close()
     else:
-        plt.show(fig5)
+        plt.show()
 
     # Plot the generated count over time
     fig6 = plt.figure(figsize=(10, 5))
@@ -90,8 +90,8 @@ def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):
     plt.ylabel("Generated count ratio (Smoothed)")
     plt.title("Generated count ratio over Time (Smoothed over window size {})".format(smoothing_window))
     if noshow:
-        plt.close(fig6)
+        plt.close()
     else:
-        plt.show(fig6)
+        plt.show()
 
     return fig1, fig2, fig3, fig4, fig5, fig6
