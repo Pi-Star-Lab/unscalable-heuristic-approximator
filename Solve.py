@@ -58,8 +58,11 @@ def readCommand(argv):
 
     parser.add_option("-m", "--solver_dump_path", type="str", dest="save_path",
             default=".", help='Path to save checkpoints')
-    parser.add_option("-u", "--update_target", type="int", dest="update_target", default=30,
+    parser.add_option("-u", "--update_target", type="int", dest="update_target", default=100,
                       help='No. of episodes after which you should sync target with model')
+    parser.add_option("-f", "--expansion_bound", type="int", dest="expansion_bound", default=500,
+                      help='Maximum number of expansions that should take place')
+
 
     (options, args) = parser.parse_args(argv)
     return options
@@ -112,14 +115,8 @@ if __name__ == '__main__':
         expanded=np.zeros(problem_count * options.episodes),
         generated=np.zeros(problem_count * options.episodes))
 
-    #f = open("optimal_states.list", "rb")
     #solver.load("Models/pancake7_5/weights/model_dump_7000", "Models/pancake7_5/buffer/memory_10k_5_7000")
-    #opt_states = pickle.load(f)
     problem_no = 0
-
-    #### Debug code delete this #####
-    #options.episodes += 7000
-    ################################
 
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
         with open(os.path.join(resultdir, options.outfile + '.csv'), 'a+') as result_file:
@@ -131,7 +128,6 @@ if __name__ == '__main__':
                 p.read_in(line)
                 print("Solving problem #{}: {}".format(l,p))
                 solver.__init__(p,options)
-                #solver.w = 0.9
                 #solver.optimal_states = opt_states
                 for e in range(0, (options.episodes)):
                     print("Running episode {}".format(e+1))
