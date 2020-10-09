@@ -76,9 +76,12 @@ class DLMC(AbstractSolver):
         # A single run
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
-        path,expanded = self.greedy_solver.solve(problem)
+        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 2 * self.expansion_bound)
 
-        print("Path found. Length of Path: {}".format(len(path)))
+        if path:
+            print("Path found. Length of Path: {}".format(len(path)))
+        else:
+            print("Couldn't find path under {} expansions".format(2 * self.expansion_bound))
 
         expanded.reverse()
 
