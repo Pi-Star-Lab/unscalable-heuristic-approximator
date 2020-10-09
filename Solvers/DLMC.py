@@ -36,6 +36,7 @@ class DLMC(AbstractSolver):
 
         if options is not None:
             self.update_target = options.update_target
+            self.expansion_bound = options.expansion_bound
         else:
             self.update_target = 100
 
@@ -71,7 +72,7 @@ class DLMC(AbstractSolver):
         self.save_path = options.save_path
         return
 
-    def solve(self, problem, dw = 0.02, expansion_bound = 500):
+    def solve(self, problem, dw = 0.02):
         # A single run
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
@@ -90,7 +91,7 @@ class DLMC(AbstractSolver):
         self.replay()
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
         self.statistics[Statistics.Weights.value] = self.w
-        if self.statistics[0] < expansion_bound:
+        if self.statistics[0] < self.expansion_bound:
             self.w = min(1, self.w + dw)
         else:
             self.w = max(0, self.w - dw)
