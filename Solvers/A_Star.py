@@ -31,7 +31,7 @@ class AStar(AbstractSolver):
                 raise Exception('must specify noise for WA* (n=0 for deterministic A*)')
             assert self.noise_std >= 0 and self.noise_std <= 0.5, "noise std must be between 0 and 0.5"
 
-    def solve(self,problem):
+    def solve(self,problem, expansion_bound = None):
         open = MappedQueue()
         closed = set()
         start = problem.start
@@ -60,6 +60,8 @@ class AStar(AbstractSolver):
                     return goal.get_path()
 
             self.statistics[Statistics.Expanded.value] += 1
+            if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
+                return False, expanded
             successors = current.get_successors()
 
             if successors:
