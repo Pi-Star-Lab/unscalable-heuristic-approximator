@@ -24,12 +24,11 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss_fn = nn.MSELoss, optimizer = optim.Adam, lr=1e-3, \
-            use_gpu = True):
+    def compile(self, loss_fn = nn.MSELoss, optimizer = optim.Adam, lr=1e-3):
 
         self.loss_fn = loss_fn()
         self.optimizer = optimizer(self.parameters(), lr = lr)
-        self.device = torch.device("cuda:0" if use_gpu else "cpu")
+        self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_fn.to(self.device)
         self.to(self.device)
 
