@@ -76,13 +76,18 @@ class DLMC(AbstractSolver):
         # A single run
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
-        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 2 * self.expansion_bound)
+        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 8 * self.expansion_bound)
 
+        self.statistics = copy.deepcopy(self.greedy_solver.statistics)
+        self.statistics[Statistics.Weights.value] = self.w
+        
         if path:
             print("Path found. Length of Path: {}".format(len(path)))
         else:
-            print("Couldn't find path under {} expansions".format(2 * self.expansion_bound))
-
+            print("Couldn't find path under {} expansions".format(8 * self.expansion_bound))
+            print("Dropping this episode and reducing the weight")
+            self.w -= dw
+            return
         expanded.reverse()
 
         for x in range(len(expanded)):
@@ -92,8 +97,6 @@ class DLMC(AbstractSolver):
                 cost = (1, problem.goal)
             self.remember(expanded[x], cost)
         self.replay()
-        self.statistics = copy.deepcopy(self.greedy_solver.statistics)
-        self.statistics[Statistics.Weights.value] = self.w
         if self.statistics[0] < self.expansion_bound:
             self.w = min(1, self.w + dw)
         else:

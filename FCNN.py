@@ -4,6 +4,17 @@ import torch.nn.functional as F
 import torch.optim as optim
 import math
 
+class search_expanded_loss(nn.Module):
+    def __init__(self, branching_factor = 3):
+        super(search_expanded_loss, self).__init__()
+        self.bf = branching_factor
+
+    def forward(self, target, output):
+        distance_from_goal = target[:, 0]
+        weight = 1 / self.bf ** (distance_from_goal)
+        return torch.mean(weight * (target[:, 0] - output[:, 0]) ** 2)
+
+
 class FCNN(nn.Module):
     def __init__(self, layers):
         super(FCNN, self).__init__()
@@ -24,7 +35,7 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss_fn = nn.MSELoss, optimizer = optim.Adam, lr=1e-3):
+    def compile(self, loss_fn = search_expanded_loss, optimizer = optim.Adam, lr=1e-3):
 
         self.loss_fn = loss_fn()
         self.optimizer = optimizer(self.parameters(), lr = lr)
