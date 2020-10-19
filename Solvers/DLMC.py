@@ -76,7 +76,7 @@ class DLMC(AbstractSolver):
         # A single run
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
-        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 2 * self.expansion_bound)
+        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 8 * self.expansion_bound)
 
         if path:
             print("Path found. Length of Path: {}".format(len(path)))
@@ -126,8 +126,11 @@ class DLMC(AbstractSolver):
     def remember(self, state, h):
         self.buffer_x.append(state.as_tensor())
         self.memory.append([state, h])
-        min_target_val = self.get_target_value(state, h[1])
-        self.buffer_target.append(h[0] + min_target_val)
+        if h[0] == 0:
+            self.buffer_target.append(0)
+        else:
+            min_target_val = self.get_target_value(state, h[1])
+            self.buffer_target.append(h[0] + min_target_val)
 
     def replay(self):
         self.counter += 1
@@ -140,11 +143,8 @@ class DLMC(AbstractSolver):
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
 
-            model_path =  os.path.join(self.save_path, "weights", \
-                    "model_dump_{}".format(self.counter))
-            buffer_path =  os.path.join(self.save_path, "buffer", \
-                    "memory_{}".format(self.counter))
-            self.save(model_path, buffer_path)
+            path = os.path.join(self.save_path, "solver_{:07d}".format(self.counter))
+            self.save(path)
 
             i = 0
             for x,y in self.memory:
@@ -165,7 +165,15 @@ class DLMC(AbstractSolver):
         x = state.as_tensor()
         return np.reshape(state.as_tensor(), [1, len(x)])
 
-    def save(self, model_path, memory):
+    def save(self, path):
+        f = open(path + '.pkl', "wb")
+        pickle.dump(self, f)
+
+    def load(self, path):
+        f = open(path + '.pkl', "rb")
+        self = pickle.load(self, f)
+
+    def save_weights_memory(self, model_path, memory):
         self.h.save(model_path + '.pkl')
         f = open(memory + ".pkl", "wb")
         pickle.dump(self.memory, f)
@@ -174,7 +182,7 @@ class DLMC(AbstractSolver):
         f = open(memory + "_target.pkl", "wb")
         pickle.dump(self.buffer_target, f)
 
-    def load(self, model_path, memory):
+    def load_weights_memory(self, model_path, memory):
 
         print("Loading and resuming weights")
         self.h = keras.models.load_model(model_path + ".pkl")

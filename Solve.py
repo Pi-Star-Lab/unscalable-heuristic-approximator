@@ -124,10 +124,10 @@ if __name__ == '__main__':
             p = prob()
 
             l = 0
+            solver.__init__(p,options)
             while line and l < options.training_episodes * options.episodes:
                 p.read_in(line)
                 print("Solving problem #{}: {}".format(l,p))
-                solver.__init__(p,options)
                 #solver.optimal_states = opt_states
                 for e in range(0, (options.episodes)):
                     print("Running episode {}".format(e+1))
