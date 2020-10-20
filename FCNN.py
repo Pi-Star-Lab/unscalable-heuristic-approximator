@@ -3,6 +3,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 import math
+from collections import defaultdict
 
 class search_expanded_loss(nn.Module):
     def __init__(self, branching_factor = 3):
@@ -14,6 +15,20 @@ class search_expanded_loss(nn.Module):
         weight = 1 / self.bf ** (distance_from_goal)
         return torch.mean(weight * (target[:, 0] - output[:, 0]) ** 2)
 
+class balanced_data_loss(nn.Module):
+    def __init__(self):
+        super(balanced_data_loss, self).__init__()
+
+    def get_weights(self, values):
+        rounded_values = torch.round(values[:, 0])
+        _, inverses, counts = torch.unique(rounded_values, \
+                return_counts = True, return_inverse = True)
+        return counts[inverses[range(rounded_values.shape[0])]]
+
+    def forward(self, target, output):
+        w = self.get_weights(target)
+        max_w = torch.max(w)
+        return torch.mean((max_w.item() / w) * ((target[:, 0] - output[:, 0]) ** 2))
 
 class FCNN(nn.Module):
     def __init__(self, layers):
@@ -35,7 +50,7 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss_fn = search_expanded_loss, optimizer = optim.Adam, lr=1e-3):
+    def compile(self, loss_fn = balanced_data_loss, optimizer = optim.Adam, lr=1e-3):
 
         self.loss_fn = loss_fn()
         self.optimizer = optimizer(self.parameters(), lr = lr)
@@ -68,7 +83,7 @@ class FCNN(nn.Module):
 
             self.optimizer.zero_grad()
             pred = self.forward(local_x)
-            loss = self.loss_fn(local_y, pred)
+            loss = self.loss_fn(target = local_y, output = pred)
             loss.backward()
 
             self.optimizer.step()

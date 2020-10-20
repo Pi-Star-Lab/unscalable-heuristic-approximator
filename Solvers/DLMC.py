@@ -19,7 +19,7 @@ def weighted_loss(y_true, y_pred):
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
-    batch_size = 2 ** 10
+    batch_size = int(1e10)
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
@@ -80,7 +80,7 @@ class DLMC(AbstractSolver):
 
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
         self.statistics[Statistics.Weights.value] = self.w
-        
+
         if path:
             print("Path found. Length of Path: {}".format(len(path)))
         else:
