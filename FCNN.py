@@ -28,7 +28,9 @@ class balanced_data_loss(nn.Module):
     def forward(self, target, output):
         w = self.get_weights(target)
         max_w = torch.max(w)
-        return torch.mean((max_w.item() / w) * ((target[:, 0] - output[:, 0]) ** 2))
+        print(max_w.item() / w.float())
+        print(max_w.item() / w)
+        return torch.mean((max_w.item() / w.float()) * ((target[:, 0] - output[:, 0]) ** 2))
 
 class FCNN(nn.Module):
     def __init__(self, layers):
@@ -83,7 +85,7 @@ class FCNN(nn.Module):
 
             self.optimizer.zero_grad()
             pred = self.forward(local_x)
-            loss = self.loss_fn(target = local_y, output = pred)
+            loss = self.loss_fn(local_y, pred)
             loss.backward()
 
             self.optimizer.step()

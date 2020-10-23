@@ -28,12 +28,6 @@ class DLMC(AbstractSolver):
         self.w = 0
         self.counter = 0
 
-        ## Debuging code ###
-        self.optimal_states = []
-        self.initial_state_hval = []
-        self.final_state_hval = []
-        ## end ####
-
         if options is not None:
             self.update_target = options.update_target
             self.expansion_bound = options.expansion_bound
@@ -139,10 +133,6 @@ class DLMC(AbstractSolver):
         self.counter += 1
         if self.counter % self.update_target == 0 or \
                 len(self.buffer_target) != len(self.memory):
-            #self.initial_state_hval.append(self.get_h(self.optimal_states[0],\
-            #        self.optimal_states[-1]))
-            #self.final_state_hval.append(self.get_h(self.optimal_states[-2], \
-            #        self.optimal_states[-1]))
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
 
@@ -173,8 +163,10 @@ class DLMC(AbstractSolver):
         pickle.dump(self, f)
 
     def load(self, path):
-        f = open(path + '.pkl', "rb")
-        self = pickle.load(self, f)
+        if not os.path.exists(path):
+            raise("Wrong Solver path")
+        f = open(path, "rb")
+        self = pickle.load(f)
 
     def save_weights_memory(self, model_path, memory):
         self.h.save(model_path + '.pkl')

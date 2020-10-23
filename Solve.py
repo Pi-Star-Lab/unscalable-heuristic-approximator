@@ -62,7 +62,8 @@ def readCommand(argv):
                       help='No. of episodes after which you should sync target with model')
     parser.add_option("-f", "--expansion_bound", type="int", dest="expansion_bound", default=500,
                       help='Maximum number of expansions that should take place')
-
+    parser.add_option("-z", "--resume", type="string", dest="resume", default=None,
+                      help='Where to load solver from?')
 
     (options, args) = parser.parse_args(argv)
     return options
@@ -115,7 +116,10 @@ if __name__ == '__main__':
         expanded=np.zeros(problem_count * options.episodes),
         generated=np.zeros(problem_count * options.episodes))
 
-    #solver.load("Models/pancake7_5/weights/model_dump_7000", "Models/pancake7_5/buffer/memory_10k_5_7000")
+    if options.resume is not None:
+        solver = pickle.load(open(options.resume, 'rb'))
+        print(solver.w)
+        print(solver.expansion_bound)
     problem_no = 0
 
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
@@ -124,7 +128,9 @@ if __name__ == '__main__':
             p = prob()
 
             l = 0
-            solver.__init__(p,options)
+            if options.resume is None:
+                solver.__init__(p,options)
+
             while line and l < options.training_episodes * options.episodes:
                 p.read_in(line)
                 print("Solving problem #{}: {}".format(l,p))
