@@ -8,8 +8,10 @@ import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 from FCNN import FCNN
+from buffers import ReplayBufferSearch
 
 import logging
+
 import pickle
 import os
 
@@ -20,6 +22,7 @@ def weighted_loss(y_true, y_pred):
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
     batch_size = int(1e10)
+    sample_size = 10 ** 4
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
@@ -58,9 +61,8 @@ class DLMC(AbstractSolver):
 
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer_x = deque(maxlen=DLMC.buffer_size)
-        self.memory = deque(maxlen=DLMC.buffer_size)
-        self.buffer_target = deque(maxlen=DLMC.buffer_size) #just to save computational speed!
+        self.buffer = ReplayBufferSearch(self.buffer_size)
+
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
         self.save_path = options.save_path
@@ -121,38 +123,26 @@ class DLMC(AbstractSolver):
         return min([self.target_bounded_predict(state, goal) for state in new_states])
 
     def remember(self, state, h):
-        self.buffer_x.append(state.as_tensor())
-        self.memory.append([state, h])
         if h[0] == 0:
-            self.buffer_target.append(0)
+            target = 0
         else:
-            min_target_val = self.get_target_value(state, h[1])
-            self.buffer_target.append(h[0] + min_target_val)
+            target = h[0] + self.get_target_value(state, h[1])
+        self.buffer.append(state.as_tensor(), [state, h], target)
 
     def replay(self):
         self.counter += 1
-        if self.counter % self.update_target == 0 or \
-                len(self.buffer_target) != len(self.memory):
+        if self.counter % self.update_target == 0:# or \
+                #len(self.buffer_target) != len(self.memory):
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
 
             path = os.path.join(self.save_path, "solver_{:07d}".format(self.counter))
             self.save(path)
 
-            i = 0
-            for x,y in self.memory:
-                if x == y[1]:
-                    self.buffer_target[i] = 0
-                else:
-                    min_target_val = self.get_target_value(x, y[1])
-                    self.buffer_target[i] = y[0] + min_target_val
-                    if i < 45:
-                        print(y[0], min_target_val, end = ",   ")
-                if i < 45:
-                    print(i, self.buffer_target[i], "actual", self.get_h(x, y[1]))
-                i += 1
+            self.buffer.update_target_values(self.get_target_value)
 
-        self.h.run_epoch(x=np.array(self.buffer_x), y=np.array(self.buffer_target), batch_size=DLMC.batch_size, verbose=1)
+        x, y = self.buffer.sample(self.sample_size)
+        self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 
     def reshape(self, state):
         x = state.as_tensor()

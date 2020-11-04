@@ -28,8 +28,8 @@ class balanced_data_loss(nn.Module):
     def forward(self, target, output):
         w = self.get_weights(target)
         max_w = torch.max(w)
-        print(max_w.item() / w.float())
-        print(max_w.item() / w)
+        #print(max_w.item() / w.float())
+        #print(max_w.item() / w)
         return torch.mean((max_w.item() / w.float()) * ((target[:, 0] - output[:, 0]) ** 2))
 
 class FCNN(nn.Module):
@@ -52,7 +52,7 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss_fn = balanced_data_loss, optimizer = optim.Adam, lr=1e-3):
+    def compile(self, loss_fn = nn.MSELoss, optimizer = optim.Adam, lr=1e-3):
 
         self.loss_fn = loss_fn()
         self.optimizer = optimizer(self.parameters(), lr = lr)
