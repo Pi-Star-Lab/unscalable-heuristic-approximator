@@ -1,6 +1,7 @@
 from collections import deque
 import numpy as np
 import random
+import torch
 
 class ReplayBufferSearch(object):
     """
@@ -41,7 +42,7 @@ class ReplayBufferSearch(object):
                 self.buffer_target[i] = y[0] + min_target
                 """ remove the code below """
                 if i < 45:
-                    print(y[0], min_target, end = ",   ")
+                    print("Cost:", y[0], "Target Value:", min_target)
             if i < 45:
                 pass
                 #print(i, self.buffer_target[i], "actual", self.get_h(x, y[1]))
@@ -52,5 +53,29 @@ class ReplayBufferSearch(object):
         :param sample_size: Number of desired samples
         """
         idxes = [random.randint(0, len(self) - 1) for _ in range(sample_size)]
+        x, y = np.array(self.buffer_x), np.array(self.buffer_target)
+        return x[idxes], y[idxes]
+
+class PrioritizedReplayBufferSearch(ReplayBufferSearch):
+    """
+    Priortized Replay Buffer for search-TD based problems
+    Uses MSE by default
+    """
+    def set_predict_function(self, fn):
+        """
+        :param fn: Function to used to predict NN values
+        """
+        self.predict_fn = fn
+
+    def sample(self, sample_size):
+        """
+        :param sample_size: Number of desired samples
+        """
+        predicted_values = self.predict_fn(np.array(self.buffer_x)).cpu()
+        loss_fn = torch.nn.MSELoss(reduction = 'none')
+        bt = torch.Tensor(self.buffer_target).unsqueeze(1)
+        priorities = loss_fn(predicted_values, bt)
+        idxes = torch.multinomial(priorities.squeeze(1), sample_size, replacement=True)
+        idxes = list(np.array(idxes))
         x, y = np.array(self.buffer_x), np.array(self.buffer_target)
         return x[idxes], y[idxes]

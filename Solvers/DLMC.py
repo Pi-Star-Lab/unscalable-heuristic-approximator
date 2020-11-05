@@ -8,7 +8,7 @@ import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 from FCNN import FCNN
-from buffers import ReplayBufferSearch
+from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
 
 import logging
 
@@ -61,7 +61,7 @@ class DLMC(AbstractSolver):
 
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer = ReplayBufferSearch(self.buffer_size)
+        self.buffer = PrioritizedReplayBufferSearch(self.buffer_size)
 
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
@@ -140,7 +140,7 @@ class DLMC(AbstractSolver):
             self.save(path)
 
             self.buffer.update_target_values(self.get_target_value)
-
+        self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 
