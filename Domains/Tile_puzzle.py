@@ -2,7 +2,7 @@ from Domains.Abstract_State import AbstractState
 import Utils
 import copy
 import math
-
+import numpy as np
 
 class Tile(AbstractState):
 
@@ -75,6 +75,12 @@ class Tile(AbstractState):
             dy = abs(int(i1/self.dim) - int(i2/self.dim))
             h += dx + dy
         return h
+
+    def as_tensor(self):
+        """
+        Return the one-hot encoding of the tile puzzle
+        """
+        return np.eye(len(self.board))[self.board].reshape(-1)
 
     @staticmethod
     def parse_state(string):

@@ -8,6 +8,7 @@ import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 from FCNN import FCNN
+from ResNN import ResNN
 from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
 
 import logging
@@ -22,7 +23,7 @@ def weighted_loss(y_true, y_pred):
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
     batch_size = int(1e10)
-    sample_size = 10 ** 4
+    sample_size = 10 ** 5
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
@@ -49,8 +50,8 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = FCNN([input_dim] + layers + [1])
-        target_model = FCNN([input_dim] + layers + [1])
+        model = ResNN([input_dim] + layers + [1])
+        target_model = ResNN([input_dim] + layers + [1])
 
         target_model.set_weights(model.get_weights())
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))

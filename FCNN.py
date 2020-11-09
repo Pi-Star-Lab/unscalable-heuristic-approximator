@@ -61,10 +61,11 @@ class FCNN(nn.Module):
         self.to(self.device)
 
     def predict(self, x):
-        self.eval()
-        x = torch.Tensor(x)
-        x = x.to(self.device)
-        return self.forward(x)
+        with torch.no_grad():
+            self.eval()
+            x = torch.Tensor(x)
+            x = x.to(self.device)
+            return self.forward(x)
 
     def run_epoch(self, x, y, batch_size = 1e10, verbose = 1):
 
