@@ -31,7 +31,13 @@ class Pancake(AbstractState):
     def __hash__(self):
         return hash(str(self.stack))
 
-    # Gap heuristic
+    def as_tensor(self):
+        """
+        Return the one-hot encoding of the pancake problem
+        """
+        return np.eye(len(self.stack))[self.stack].reshape(-1)
+
+   # Gap heuristic
     def get_h(self, goal):
         # Currently Goal is assumed to be [0,1,2,3,4,...]
         cost = 0
