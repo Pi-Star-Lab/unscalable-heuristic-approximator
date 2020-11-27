@@ -1,6 +1,6 @@
 from Domains.Abstract_State import AbstractState
 import Utils
-
+import numpy as np
 
 class Pancake(AbstractState):
 
