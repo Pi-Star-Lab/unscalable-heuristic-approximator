@@ -18,7 +18,7 @@ class Rubik(AbstractState):
     def __init__(self, cube, g):
         self.cube = cube
         self.dim = int(math.sqrt(len(cube)/6))
-        assert self.dim==3, "Rubik's cube with dimensionality of 3 i.e., 3x3x6 is the nly one supported at the moment"
+        assert self.dim==3, "Rubik's cube with dimensionality of 3 i.e., 3x3x3 is the nly one supported at the moment"
         super(Rubik,self).__init__(g)
 
     # Return a single vector from cube
@@ -32,17 +32,23 @@ class Rubik(AbstractState):
     def get_successors(self):
         successors = []
 
-        for face in range(6):
-            c_cube = copy.deepcopy(self.cube)
-            # A cube move rotates one of the 6 faces 90 degrees
-            # face from {F(0), U(1), B(2), D(3), R(4), L(5)}
-            for i in range(8):
-                c_cube[i + face * 9] = self.cube[(i + 2) % 8 + face * 9]
-            for side in range(4):
-                for i1, i2 in zip(Rubik.rotate_indices[face][side], Rubik.rotate_indices[face][(side + 1) % 4]):
-                    c_cube[i1] = self.cube[i2]
-            child = Rubik(c_cube, self.g + 1)
-            successors.append(child)
+        for direction in range(2):
+            for face in range(6):
+                c_cube = copy.deepcopy(self.cube)
+                # A cube move rotates one of the 6 faces 90 degrees
+                # face from {F(0), U(1), B(2), D(3), R(4), L(5)}
+                for i in range(8):
+                    if direction == 0:
+                        c_cube[i + face * 9] = self.cube[(i + 2) % 8 + face * 9]
+                    if direction == 1:
+                        c_cube[i + face * 9] = self.cube[(i - 2) % 8 + face * 9]
+                for side in range(4):
+                    d = 1 if direction == 0 else -1
+                    print(d)
+                    for i1, i2 in zip(Rubik.rotate_indices[face][(-d) * side], Rubik.rotate_indices[face][(-d *(side + 1)) % 4]):
+                        c_cube[i1] = self.cube[i2]
+                child = Rubik(c_cube, self.g + 1)
+                successors.append(child)
         return successors
 
     def as_list(self):
@@ -56,6 +62,7 @@ class Rubik(AbstractState):
 
     # TODO
     def get_h(self, goal):
+        print(self.cube)
         raise NotImplementedError()
 
     @staticmethod
@@ -76,4 +83,4 @@ class Rubik(AbstractState):
 
     @staticmethod
     def get_name():
-        return "tile"
+        return "rubik's cube"
