@@ -2,7 +2,7 @@ from Domains.Abstract_State import AbstractState
 import Utils
 import math
 import copy
-
+import numpy as np
 
 class Rubik(AbstractState):
 
@@ -44,8 +44,7 @@ class Rubik(AbstractState):
                         c_cube[i + face * 9] = self.cube[(i - 2) % 8 + face * 9]
                 for side in range(4):
                     d = 1 if direction == 0 else -1
-                    print(d)
-                    for i1, i2 in zip(Rubik.rotate_indices[face][(-d) * side], Rubik.rotate_indices[face][(-d *(side + 1)) % 4]):
+                    for i1, i2 in zip(Rubik.rotate_indices[face][d * side], Rubik.rotate_indices[face][d * (side + 1) % 4]):
                         c_cube[i1] = self.cube[i2]
                 child = Rubik(c_cube, self.g + 1)
                 successors.append(child)
@@ -80,6 +79,13 @@ class Rubik(AbstractState):
             for i in range(size**2):
                 cube.append(f)
         return Rubik(cube, 0)
+
+    def as_tensor(self):
+        """
+        Return the one-hot encoding of the rubik's cube problem
+        """
+        return np.eye(6)[self.cube].reshape(-1)
+
 
     @staticmethod
     def get_name():
