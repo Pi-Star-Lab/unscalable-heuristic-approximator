@@ -5,7 +5,8 @@ from Domains.Rubiks_cube import Rubik
 class ProblemInstance:
 
     separator = '$'
-    random_steps = 998
+    _random_steps = 998
+    random_steps_domain = {'pancake' : 998,'rubik': 8,'tile': 998}
     domains = ['pancake','rubik','tile']
 
     def __init__(self):
@@ -26,13 +27,21 @@ class ProblemInstance:
         self.start = self.cls.parse_state(string[2])
         self.goal = self.cls.parse_state(string[3])
 
+    @property
+    def random_steps(self):
+        return self._random_steps
+
+    @random_steps.setter
+    def random_steps(self, val):
+        self._random_steps = val
+
     def generate_random(self, index, cls, goal):
         self.index = index
         self.cls = cls
         self.goal = goal
         start = goal
         while start == goal:
-            for x in range(ProblemInstance.random_steps):
+            for x in range(ProblemInstance.random_steps_domain[self.cls.get_name()]):
                 start = start.random_step()
         self.start = start
 

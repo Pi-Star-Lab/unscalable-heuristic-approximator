@@ -57,12 +57,55 @@ class Rubik(AbstractState):
         return str(self.cube) == str(other.cube)
 
     def __hash__(self):
-        return hash(str(self.board))
+        return hash(str(self.cube))
 
-    # TODO
+    def get_misplaced_edges(self, goal):
+        """
+        Return the number of misplaced edges per face
+        """
+        me = []
+        for face in range(6):
+            index = face * 9
+            misplaced_edges = 0
+            for cube in range(9):
+                if face % 2 == 0:
+                    #Even faces (starting 0)
+                    if index % 2 == 1 and self.cube[index] != goal.cube[index]: # if an edge and misplaced
+                        misplaced_edges += 1
+                else:
+                    if index % 2 == 0 and self.cube[index] != goal.cube[index]:
+                        misplaced_edges += 1
+                index += 1
+            me.append(misplaced_edges)
+        return me
+
+    def get_misplaced_cornors(self, goal):
+        """
+        Return the number of misplaced cornors per face
+        """
+        mc = []
+        for face in range(6):
+            index = face * 9
+            misplaced_cornor = 0
+            for cube in range(9):
+                if face % 2 == 0:
+                    #Even faces (starting 0)
+                    if index % 2 == 0 and self.cube[index] != goal.cube[index]: # if an edge and misplaced
+                        misplaced_cornor += 1
+                else:
+                    if index % 2 == 1 and self.cube[index] != goal.cube[index]:
+                        misplaced_cornor += 1
+                index += 1
+            mc.append(misplaced_cornor)
+        return mc
+
     def get_h(self, goal):
-        print(self.cube)
-        raise NotImplementedError()
+        me = self.get_misplaced_edges(goal)
+        mc = self.get_misplaced_cornors(goal)
+        missing = []
+        for x in range(len(me)):
+            missing.append(me[x] + mc[x])
+        return max(missing) + min(missing)
 
     @staticmethod
     def parse_state(string):
@@ -89,4 +132,4 @@ class Rubik(AbstractState):
 
     @staticmethod
     def get_name():
-        return "rubik's cube"
+        return "rubik"
