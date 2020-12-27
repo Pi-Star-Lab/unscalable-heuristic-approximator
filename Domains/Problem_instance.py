@@ -6,7 +6,7 @@ class ProblemInstance:
 
     separator = '$'
     _random_steps = 998
-    random_steps_domain = {'pancake' : 998,'rubik': 8,'tile': 998}
+    random_steps_domain = {'pancake' : 998,'rubik': 10,'tile': 998}
     domains = ['pancake','rubik','tile']
 
     def __init__(self):

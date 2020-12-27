@@ -83,7 +83,7 @@ class DLMC(AbstractSolver):
         else:
             print("Couldn't find path under {} expansions".format(8 * self.expansion_bound))
             print("Dropping this episode and reducing the weight")
-            self.w -= dw
+            self.w = max(0, self.w - dw)
             return
         expanded.reverse()
 

@@ -99,13 +99,41 @@ class Rubik(AbstractState):
             mc.append(misplaced_cornor)
         return mc
 
+    def get_misplaced_cornors_2(self, goal):
+        """
+        Return the number of misplaced cornors per face (as per report)
+        """
+        mc = []
+        next_idx = lambda face, idx: idx + 1
+        prev_idx = lambda face, idx: idx - 1 if face * 9 < idx - 1 else (face + 1) * 9 - 2
+        for face in range(6):
+            index = face * 9
+            misplaced_cornor = 0
+            for cube in range(9):
+                if cube == 8:
+                    index += 1
+                    continue
+                if face % 2 == 0:
+                    #Even faces (starting 0)
+                    if index % 2 == 0 and \
+                            (self.cube[index] != self.cube[next_idx(face, index)] and \
+                            self.cube[index] != self.cube[prev_idx(face, index)]):
+                        misplaced_cornor += 1
+                else:
+                    if index % 2 == 1 and \
+                            (self.cube[index] != self.cube[next_idx(face, index)] and \
+                            self.cube[index] != self.cube[prev_idx(face, index)]):
+                        misplaced_cornor += 1
+                index += 1
+            mc.append(misplaced_cornor)
+        return mc
+
+
     def get_h(self, goal):
         me = self.get_misplaced_edges(goal)
-        mc = self.get_misplaced_cornors(goal)
-        missing = []
-        for x in range(len(me)):
-            missing.append(me[x] + mc[x])
-        return max(missing) + min(missing)
+        mc = self.get_misplaced_cornors_2(goal)
+        g_f =  [mc[x] + me[x] for x in range(len(me))]
+        return (max(g_f) + min(g_f)) / 4
 
     @staticmethod
     def parse_state(string):
