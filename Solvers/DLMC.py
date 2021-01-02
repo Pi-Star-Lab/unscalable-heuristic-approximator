@@ -31,12 +31,13 @@ class DLMC(AbstractSolver):
         self.greedy_solver.__init__(problem,options, return_expanded = True)
         self.w = 0
         self.counter = 0
+        self.update_target = 100
 
         if options is not None:
             self.update_target = options.update_target
             self.expansion_bound = options.expansion_bound
-        else:
-            self.update_target = 100
+            self.train = options.train
+            self.w = 0 if self.train else 1
 
     def weighted_h(self, start, goal):
         return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
@@ -83,9 +84,12 @@ class DLMC(AbstractSolver):
         else:
             print("Couldn't find path under {} expansions".format(8 * self.expansion_bound))
             print("Dropping this episode and reducing the weight")
-            self.w = max(0, self.w - dw)
+            self.w = max(0, self.w - dw) if self.train else 1
             return
         expanded.reverse()
+
+        if not self.train:
+            return
 
         for x in range(len(expanded)):
             if expanded[x] == problem.goal:
@@ -159,8 +163,8 @@ class DLMC(AbstractSolver):
         f = open(path, "rb")
         self = pickle.load(f)
 
-    def save_weights_memory(self, model_path, memory):
-        self.h.save(model_path + '.pkl')
+    def save_weights_memory(self, path, episode):
+        self.h.save(os.path.join(path, 'weights')+ '.pkl')
         f = open(memory + ".pkl", "wb")
         pickle.dump(self.memory, f)
         f = open(memory + "_x.pkl", "wb")
@@ -179,6 +183,9 @@ class DLMC(AbstractSolver):
         self.buffer_x = pickle.load(f)
         f = open(memory + "_target.pkl", "rb")
         self.buffer_target = pickle.load(f)
+
+    def load_model(self, model_path):
+        self.h.load_model(model_path)
 
     def __str__(self):
         return "DLMC"
