@@ -65,6 +65,10 @@ def readCommand(argv):
     parser.add_option("-z", "--resume", type="string", dest="resume", default=None,
                       help='Where to load solver from?')
 
+    parser.add_option("--no-train", action="store_false", dest="train",
+                      help='Where to load solver from?')
+    parser.set_defaults(train=True)
+
     (options, args) = parser.parse_args(argv)
     return options
 
@@ -117,7 +121,8 @@ if __name__ == '__main__':
         generated=np.zeros(problem_count * options.episodes))
 
     if options.resume is not None:
-        solver = pickle.load(open(options.resume, 'rb'))
+        solver.__init__(None, options)
+        solver.load_model(options.resume)
         print(solver.w)
         print(solver.expansion_bound)
     problem_no = 0
