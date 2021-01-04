@@ -70,7 +70,7 @@ def readCommand(argv):
     parser.set_defaults(train=True)
     parser.add_option("--resume", type="int", dest="resume", default=None,
                       help='Which episode to resume from?')
-    parser.add_option("--path", type="int", dest="resume", default=None,
+    parser.add_option("--path", type="int", dest="path", default=None,
                       help='Path of Solver from where to resume?')
     (options, args) = parser.parse_args(argv)
     return options
@@ -127,7 +127,7 @@ if __name__ == '__main__':
     if options.resume is not None:
         solver.__init__(None, options)
         skip_problems = options.resume
-    if options.path:
+    if options.path is not None:
         solver = pickle.load(open(options.path, 'rb'))
         #solver.load_model(options.resume)
     problem_no = 0
@@ -143,11 +143,11 @@ if __name__ == '__main__':
             l = 0
             while line and l < options.training_episodes * options.episodes:
                 p.read_in(line)
-                print("Solving problem #{}: {}".format(l,p))
                 line = problem_file.readline()
                 if l < skip_problems * options.episodes:
                     l += options.episodes
                     continue
+                print("Solving problem #{}: {}".format(l,p))
                 for e in range(0, (options.episodes)):
                     print("Running episode {}".format(e+1))
                     solver.solve(p)
