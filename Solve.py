@@ -62,13 +62,16 @@ def readCommand(argv):
                       help='No. of episodes after which you should sync target with model')
     parser.add_option("-f", "--expansion_bound", type="int", dest="expansion_bound", default=500,
                       help='Maximum number of expansions that should take place')
-    parser.add_option("-z", "--resume", type="string", dest="resume", default=None,
-                      help='Where to load solver from?')
+    #parser.add_option("-z", "--resume", type="string", dest="resume", default=None,
+    #                  help='Where to load solver from?')
 
     parser.add_option("--no-train", action="store_false", dest="train",
                       help='Where to load solver from?')
     parser.set_defaults(train=True)
-
+    parser.add_option("--resume", type="int", dest="resume", default=None,
+                      help='Which episode to resume from?')
+    parser.add_option("--path", type="int", dest="resume", default=None,
+                      help='Path of Solver from where to resume?')
     (options, args) = parser.parse_args(argv)
     return options
 
@@ -120,11 +123,13 @@ if __name__ == '__main__':
         expanded=np.zeros(problem_count * options.episodes),
         generated=np.zeros(problem_count * options.episodes))
 
+    skip_problems = 0
     if options.resume is not None:
         solver.__init__(None, options)
-        solver.load_model(options.resume)
-        print(solver.w)
-        print(solver.expansion_bound)
+        skip_problems = options.resume
+    if options.path:
+        solver = pickle.load(open(options.path, 'rb'))
+        #solver.load_model(options.resume)
     problem_no = 0
 
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
@@ -132,14 +137,17 @@ if __name__ == '__main__':
             line = problem_file.readline()
             p = prob()
 
-            l = 0
-            if options.resume is None:
+            if options.path is None:
                 solver.__init__(p,options)
 
+            l = 0
             while line and l < options.training_episodes * options.episodes:
                 p.read_in(line)
                 print("Solving problem #{}: {}".format(l,p))
-                #solver.optimal_states = opt_states
+                line = problem_file.readline()
+                if l < skip_problems * options.episodes:
+                    l += options.episodes
+                    continue
                 for e in range(0, (options.episodes)):
                     print("Running episode {}".format(e+1))
                     solver.solve(p)
@@ -155,7 +163,6 @@ if __name__ == '__main__':
                     run_baseline(blsolver, p, options, blstats, l)
                     update_ratio(stats,blstats,l,rstats)
                     l = l + 1
-                line = problem_file.readline()
             problem_no += 1
     Plotting.plot_stats(stats, blstats, rstats, smoothing_window = options.smoothing_window)
 
