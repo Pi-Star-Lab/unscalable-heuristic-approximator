@@ -22,7 +22,7 @@ def weighted_loss(y_true, y_pred):
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
-    batch_size = int(1e10)
+    batch_size = int(2**14)
     sample_size = 10 ** 5
 
     def __init__(self, problem=None, options=None):
