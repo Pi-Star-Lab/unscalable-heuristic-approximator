@@ -2,6 +2,7 @@ from collections import deque
 import numpy as np
 import random
 import torch
+import pickle
 
 class ReplayBufferSearch(object):
     """
