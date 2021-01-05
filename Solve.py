@@ -129,7 +129,7 @@ if __name__ == '__main__':
     if options.path is not None:
         solver.__init__(None, options)
         #solver = pickle.load(open(options.path, 'rb'))
-        solver.load_model(options.resume)
+        solver.load_model(options.path)
     problem_no = 0
 
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
