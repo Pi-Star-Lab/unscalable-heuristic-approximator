@@ -68,6 +68,8 @@ class DLMC(AbstractSolver):
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
         self.save_path = options.save_path
+        os.makedirs(os.path.join(self.save_path, 'weights'))
+        os.makedirs(os.path.join(self.save_path, 'buffer'))
         return
 
     def solve(self, problem, dw = 0.02):
@@ -142,7 +144,7 @@ class DLMC(AbstractSolver):
             self.target_model.set_weights(self.h.get_weights())
 
             path = os.path.join(self.save_path, "solver_{:07d}".format(self.counter))
-            self.save(path)
+            self.save_weights_memory(path)
 
             self.buffer.update_target_values(self.get_target_value)
         self.buffer.set_predict_function(self.h.predict)
@@ -164,13 +166,8 @@ class DLMC(AbstractSolver):
         self = pickle.load(f)
 
     def save_weights_memory(self, path, episode):
-        self.h.save(os.path.join(path, 'weights')+ '.pkl')
-        f = open(memory + ".pkl", "wb")
-        pickle.dump(self.memory, f)
-        f = open(memory + "_x.pkl", "wb")
-        pickle.dump(self.buffer_x, f)
-        f = open(memory + "_target.pkl", "wb")
-        pickle.dump(self.buffer_target, f)
+        self.h.save(os.path.join(path, 'weights') + 'solver_{:07d}.pkl'.format(episode))
+        self.buffer.save(os.path.join(path, 'buffer', 'solver_{:07d}'.format(episode)))
 
     def load_weights_memory(self, model_path, memory):
 

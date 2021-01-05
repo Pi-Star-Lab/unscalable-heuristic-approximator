@@ -56,6 +56,15 @@ class ReplayBufferSearch(object):
         x, y = np.array(self.buffer_x), np.array(self.buffer_target)
         return x[idxes], y[idxes]
 
+    def save(self, path):
+        f = open(path + ".pkl", "wb")
+        pickle.dump(self.memory, f)
+        f = open(path + "_x.pkl", "wb")
+        pickle.dump(self.buffer_x, f)
+        f = open(path + "_target.pkl", "wb")
+        pickle.dump(self.buffer_target, f)
+
+
 class PrioritizedReplayBufferSearch(ReplayBufferSearch):
     """
     Priortized Replay Buffer for search-TD based problems
