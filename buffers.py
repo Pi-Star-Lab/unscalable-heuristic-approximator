@@ -30,25 +30,6 @@ class ReplayBufferSearch(object):
         self.memory.append(memory)
         self.buffer_target.append(target)
 
-    def update_target_values(self, get_target_value):
-        """
-        :param get_target_value: A function that would give you the target value
-        """
-        i = 0
-        for x, y in self.memory:
-            if x == y[1]:
-                self.buffer_target[i] = 0
-            else:
-                min_target = get_target_value(x, y[1])
-                self.buffer_target[i] = y[0] + min_target
-                """ remove the code below """
-                if i < 45:
-                    print("Cost:", y[0], "Target Value:", min_target)
-            if i < 45:
-                pass
-                #print(i, self.buffer_target[i], "actual", self.get_h(x, y[1]))
-            i += 1
-
     def sample(self, sample_size):
         """
         :param sample_size: Number of desired samples

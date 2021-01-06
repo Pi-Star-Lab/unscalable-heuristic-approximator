@@ -32,6 +32,7 @@ class DLMC(AbstractSolver):
         self.w = 0
         self.counter = 0
         self.update_target = 100
+        self.current_problem = None
 
         if options is not None:
             self.update_target = options.update_target
@@ -75,6 +76,8 @@ class DLMC(AbstractSolver):
 
     def solve(self, problem, dw = 0.02):
         # A single run
+        self.current_problem = problem
+
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
         path,expanded = self.greedy_solver.solve(problem, expansion_bound = 8 * self.expansion_bound)
@@ -100,6 +103,8 @@ class DLMC(AbstractSolver):
             else:
                 cost = (1, problem.goal)
             self.remember(expanded[x], cost)
+
+        self.update_target_values(expanded)
         self.replay()
         if self.statistics[0] < self.expansion_bound:
             self.w = min(1, self.w + dw)
@@ -131,7 +136,7 @@ class DLMC(AbstractSolver):
         return min([self.target_bounded_predict(state, goal) for state in new_states])
 
     def remember(self, state, h):
-        if h[0] == 0:
+        if h[0] == 0:                      ### need to check for goal neatly!
             target = 0
         else:
             target = h[0] + self.get_target_value(state, h[1])
@@ -145,11 +150,32 @@ class DLMC(AbstractSolver):
             self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()
+            self.update_target_values(self.buffer.memory)
 
-            self.buffer.update_target_values(self.get_target_value)
         self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
+
+    def update_target_values(self, X):
+        """
+        :param get_target_value: A function that would give you the target value
+        """
+        i = 0
+        for x,y in X:
+            if x == self.current_problem.goal:
+                target = 0
+                cost = 0
+                #self.buffer_target[i] = 0
+            else:
+                cost = 1
+                target = get_target_value(x, self.current_problem.goal)
+                target = cost + min_target # Hard code vaues! Consider storing costs in an array
+                """ remove the code below """
+                if i < 45:
+                    print("Cost:", cost, "Target Value:", min_target)
+            self.buffer.append(x, [x,cost], target)
+            i += 1
+
 
     def reshape(self, state):
         x = state.as_tensor()
