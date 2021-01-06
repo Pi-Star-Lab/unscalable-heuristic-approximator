@@ -97,14 +97,16 @@ class DLMC(AbstractSolver):
         if not self.train:
             return
 
+        """
         for x in range(len(expanded)):
             if expanded[x] == problem.goal:
                 cost = (0, problem.goal)
             else:
                 cost = (1, problem.goal)
             self.remember(expanded[x], cost)
+        """
 
-        self.update_target_values(expanded)
+        self.remember(expanded)
         self.replay()
         if self.statistics[0] < self.expansion_bound:
             self.w = min(1, self.w + dw)
@@ -135,47 +137,42 @@ class DLMC(AbstractSolver):
         new_states = state.get_successors()
         return min([self.target_bounded_predict(state, goal) for state in new_states])
 
-    def remember(self, state, h):
-        if h[0] == 0:                      ### need to check for goal neatly!
-            target = 0
-        else:
-            target = h[0] + self.get_target_value(state, h[1])
-        self.buffer.append(state.as_tensor(), [state, h], target)
+    def remember(self, states):
+        target_values = self.get_target_values(states)
+        for i, state in enumerate(states):
+            if state == self.current_problem.goal:
+                cost = 0
+            else:
+                cost = 1
+            self.buffer.append(state.as_tensor(), [state, cost], target_values[i])
 
     def replay(self):
         self.counter += 1
-        if self.counter % self.update_target == 0:# or \
-                #len(self.buffer_target) != len(self.memory):
+        if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()
-            self.update_target_values(self.buffer.memory)
-
+            target_values = self.get_target_values([m[0] for m in self.buffer.memory])
+            self.buffer.update_target_buffer(target_values)
         self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 
-    def update_target_values(self, X):
-        """
-        :param get_target_value: A function that would give you the target value
-        """
+    def get_target_values(self, X):
         i = 0
-        for x,y in X:
+        target_values = np.zeros((len(X)))
+        for x in X:
             if x == self.current_problem.goal:
-                target = 0
+                target_values[i] = 0
                 cost = 0
                 #self.buffer_target[i] = 0
             else:
                 cost = 1
-                target = get_target_value(x, self.current_problem.goal)
-                target = cost + min_target # Hard code vaues! Consider storing costs in an array
-                """ remove the code below """
-                if i < 45:
-                    print("Cost:", cost, "Target Value:", min_target)
-            self.buffer.append(x, [x,cost], target)
+                min_target = self.get_target_value(x, self.current_problem.goal)
+                target_values[i] = cost + min_target # Hard code vaues! Consider storing costs in an array
             i += 1
-
+        return target_values
 
     def reshape(self, state):
         x = state.as_tensor()
