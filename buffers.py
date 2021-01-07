@@ -47,7 +47,7 @@ class ReplayBufferSearch(object):
         pickle.dump(self.buffer_target, f)
 
     def update_target_buffer(self, target_values):
-        self.buffer_target = deque(target_values)
+        self.buffer_target = deque(target_values, maxlen=self.len)
 
 class PrioritizedReplayBufferSearch(ReplayBufferSearch):
     """
