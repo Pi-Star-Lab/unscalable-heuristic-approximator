@@ -97,15 +97,7 @@ class DLMC(AbstractSolver):
         if not self.train:
             return
 
-        """
-        for x in range(len(expanded)):
-            if expanded[x] == problem.goal:
-                cost = (0, problem.goal)
-            else:
-                cost = (1, problem.goal)
-            self.remember(expanded[x], cost)
-        """
-
+        # Update weight
         self.remember(expanded)
         self.replay()
         if self.statistics[0] < self.expansion_bound:
@@ -133,10 +125,6 @@ class DLMC(AbstractSolver):
     def target_bounded_predict(self, state, goal):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
-    def get_target_value(self, state, goal):
-        new_states = state.get_successors()
-        return min([self.target_bounded_predict(state, goal) for state in new_states])
-
     def remember(self, states):
         target_values = self.get_target_values(states)
         for i, state in enumerate(states):
@@ -159,18 +147,28 @@ class DLMC(AbstractSolver):
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 
-    def get_target_values(self, X):
-        i = 0
-        target_values = np.zeros((len(X)))
-        for x in X:
+    def get_target_value(self, state, goal):
+        new_states = state.get_successors()
+        return min([self.target_bounded_predict(state, goal) for state in new_states])
+
+    def get_target_values(self, nodes):
+        target_values = np.zeros((len(nodes)))
+        X = set()
+        for x in nodes:
+            if x != self.current_problem.goal:
+                for state in x.get_successors():
+                    X.add(tuple(state.as_tensor()))
+        vals = self.h.predict(np.array(list(X)))
+        table = dict(zip(list(X), vals))
+        for i, x in enumerate(nodes):
             if x == self.current_problem.goal:
                 target_values[i] = 0
                 cost = 0
-                #self.buffer_target[i] = 0
             else:
-                cost = 1
+                cost = 1 # Hard code vaues! Consider storing costs in an array
+                min_target = min([table[tuple(state.as_tensor())] for state in x.get_successors()])
                 min_target = self.get_target_value(x, self.current_problem.goal)
-                target_values[i] = cost + min_target # Hard code vaues! Consider storing costs in an array
+                target_values[i] = cost + min_target
             i += 1
         return target_values
 
