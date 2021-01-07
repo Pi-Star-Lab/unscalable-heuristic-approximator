@@ -61,7 +61,7 @@ class FCNN(nn.Module):
         self.to(self.device)
 
     def predict(self, x, batch_size = 2e4):
-        batch_size = min(x.shape[0], batch_size)
+        batch_size = int(min(x.shape[0], batch_size))
         n_batches = math.ceil(x.shape[0] / batch_size)
         y = []
         with torch.no_grad():
