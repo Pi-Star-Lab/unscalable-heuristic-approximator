@@ -60,12 +60,17 @@ class FCNN(nn.Module):
         self.loss_fn.to(self.device)
         self.to(self.device)
 
-    def predict(self, x):
+    def predict(self, x, batch_size = 2e4):
+        batch_size = min(x.shape[0], batch_size)
+        n_batches = math.ceil(x.shape[0] / batch_size)
+        y = []
         with torch.no_grad():
             self.eval()
             x = torch.Tensor(x)
-            x = x.to(self.device)
-            return self.forward(x)
+            for i in range(n_batches):
+                local_x = x[i * batch_size:(i+1)*batch_size,].to(self.device)
+                y.append(self.forward(local_x))
+        return torch.cat(y)
 
     def run_epoch(self, x, y, batch_size = 1e10, verbose = 1):
 
