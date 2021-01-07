@@ -158,17 +158,24 @@ class DLMC(AbstractSolver):
             if x != self.current_problem.goal:
                 for state in x.get_successors():
                     X.add(tuple(state.as_tensor()))
-        vals = self.h.predict(np.array(list(X)))
-        table = dict(zip(list(X), vals))
+        X = list(X)
+        vals = self.h.predict(np.array(X))
+        table = dict(zip(X, vals))
         for i, x in enumerate(nodes):
             if x == self.current_problem.goal:
                 target_values[i] = 0
                 cost = 0
             else:
                 cost = 1 # Hard code vaues! Consider storing costs in an array
-                min_target = min([table[tuple(state.as_tensor())] for state in x.get_successors()])
-                min_target = self.get_target_value(x, self.current_problem.goal)
-                target_values[i] = cost + min_target
+                min_vals = []
+                for state in x.get_successors():
+                    hand_crafted_h = x.get_h(self.current_problem.goal)
+                    if hand_crafted_h == 0:
+                        min_vals.append(cost)
+                    else:
+                        min_vals.append(cost + max(table[tuple(state.as_tensor())], hand_crafted_h))
+                #min_target = self.get_target_value(x, self.current_problem.goal)
+                target_values[i] = min(min_vals)
             i += 1
         return target_values
 
