@@ -24,6 +24,7 @@ class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
     batch_size = int(2**14)
     sample_size = 10 ** 5
+    boostrap_update_size = 3 * buffer_size
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
@@ -148,20 +149,35 @@ class DLMC(AbstractSolver):
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 
     def get_target_value(self, state, goal):
+        """
+        Depricated
+        """
         new_states = state.get_successors()
         return min([self.target_bounded_predict(state, goal) for state in new_states])
 
     def get_target_values(self, nodes):
         target_values = np.zeros((len(nodes)))
         X = set()
-        for x in nodes:
+        update_idx = 0
+        for i, x in enumerate(nodes):
             if x != self.current_problem.goal:
                 for state in x.get_successors():
                     X.add(tuple(state.as_tensor()))
-        X = list(X)
+            if len(X) > self.boostrap_update_size:
+                X = list(X)
+                self.update_target_fn(nodes, list(X), target_values, update_idx, i + 1)
+                update_idx = i + 1
+                X = set()
+        if len(nodes) != update_idx:
+            self.update_target_fn(nodes, list(X), target_values, update_idx, len(nodes))
+        return target_values
+
+    def update_target_fn(self, nodes, X, target_values, start, end):
         vals = self.h.predict(np.array(X))
         table = dict(zip(X, vals))
-        for i, x in enumerate(nodes):
+        del X, vals
+        for i in range(start, end):
+            x = nodes[i]
             if x == self.current_problem.goal:
                 target_values[i] = 0
                 cost = 0
@@ -199,7 +215,7 @@ class DLMC(AbstractSolver):
         self.h.save(os.path.join(path, 'weights', 'solver_{:07d}.pkl'.format(episode)))
         self.buffer.save(os.path.join(path, 'buffer', 'solver_{:07d}'.format(episode)))
 
-    def load_weights_memory(self, model_path, memory):
+    def load_weights_memory(self, episode):
 
         print("Loading and resuming weights")
         self.h = keras.models.load_model(model_path + ".pkl")

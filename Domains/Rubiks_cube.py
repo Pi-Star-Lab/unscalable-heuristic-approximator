@@ -155,7 +155,7 @@ class Rubik(AbstractState):
         """
         Return the one-hot encoding of the rubik's cube problem
         """
-        return np.eye(6)[self.cube].reshape(-1)
+        return np.eye(6, dtype=np.float32)[self.cube].reshape(-1)
 
 
     @staticmethod
