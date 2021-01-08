@@ -169,7 +169,7 @@ class DLMC(AbstractSolver):
                 cost = 1 # Hard code vaues! Consider storing costs in an array
                 min_vals = []
                 for state in x.get_successors():
-                    hand_crafted_h = x.get_h(self.current_problem.goal)
+                    hand_crafted_h = state.get_h(self.current_problem.goal)
                     if hand_crafted_h == 0:
                         min_vals.append(cost)
                     else:
