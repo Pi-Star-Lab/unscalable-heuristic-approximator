@@ -46,6 +46,14 @@ class ReplayBufferSearch(object):
         f = open(path + "_target.pkl", "wb")
         pickle.dump(self.buffer_target, f)
 
+    def load(self, path):
+        f = open(path + ".pkl", "rb")
+        self.memory = pickle.load(f)
+        f = open(path + "_x.pkl", "rb")
+        self.buffer_x = pickle.load(f)
+        f = open(path + "_target.pkl", "hb")
+        self.buffer_target = pickle.load(f)
+
     def update_target_buffer(self, target_values):
         self.buffer_target = deque(target_values, maxlen=self.len)
 

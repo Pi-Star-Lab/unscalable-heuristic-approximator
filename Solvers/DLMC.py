@@ -218,14 +218,10 @@ class DLMC(AbstractSolver):
     def load_weights_memory(self, episode):
 
         print("Loading and resuming weights")
-        self.h = keras.models.load_model(model_path + ".pkl")
-        self.target_model = keras.models.load_model(model_path + ".pkl")
-        f = open(memory + '.pkl', "rb")
-        self.memory = pickle.load(f)
-        f = open(memory + "_x.pkl", "rb")
-        self.buffer_x = pickle.load(f)
-        f = open(memory + "_target.pkl", "rb")
-        self.buffer_target = pickle.load(f)
+        path = self.save_path
+        self.load_model(os.path.join(path, 'weights', 'solver_{:07d}.pkl'.format(episode)))
+        self.buffer.load(os.path.join(path, 'buffer', 'solver_{:07d}'.format(episode)))
+        self.target_model.load_model(os.path.join(path, 'weights', 'solver_{:07d}.pkl'.format(episode - self.update_target)))
 
     def load_model(self, model_path):
         self.h.load_model(model_path)

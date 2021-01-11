@@ -66,7 +66,7 @@ def readCommand(argv):
     #                  help='Where to load solver from?')
 
     parser.add_option("--no-train", action="store_false", dest="train",
-                      help='Where to load solver from?')
+                      help='Update weights while solving problems?')
     parser.set_defaults(train=True)
     parser.add_option("--resume", type="int", dest="resume", default=None,
                       help='Which episode to resume from?')
@@ -124,12 +124,20 @@ if __name__ == '__main__':
         generated=np.zeros(problem_count * options.episodes))
 
     skip_problems = 0
-    if options.resume is not None:
-        skip_problems = options.resume
-    if options.path is not None:
-        solver.__init__(None, options)
-        #solver = pickle.load(open(options.path, 'rb'))
-        solver.load_model(options.path)
+
+    if options.train:
+        if options.resume is not None:
+            skip_problems = options.resume
+            solver.__init__(None, options)
+            solver.load_weights_memory(options.resume)
+    else:
+        if options.resume is not None:
+            skip_problems = options.resume
+        if options.path is not None:
+            solver.__init__(None, options)
+            #solver = pickle.load(open(options.path, 'rb'))
+            solver.load_model(options.path)
+
     problem_no = 0
 
     with open(os.path.join(problemdir, options.probfile + '.txt'), 'r') as problem_file:
