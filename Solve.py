@@ -72,6 +72,8 @@ def readCommand(argv):
                       help='Which episode to resume from?')
     parser.add_option("--path", type="str", dest="path", default=None,
                       help='Path of Solver from where to resume?')
+    parser.add_option("--init_w", type="int", dest="init_w", default=0,
+                      help='Inital weight of switching heurisitic (usually to be used with resume)')
     (options, args) = parser.parse_args(argv)
     return options
 
@@ -125,18 +127,19 @@ if __name__ == '__main__':
 
     skip_problems = 0
 
+    solver.__init__(None, options)
     if options.train:
         if options.resume is not None:
             skip_problems = options.resume
-            solver.__init__(None, options)
             solver.load_weights_memory(options.resume)
     else:
         if options.resume is not None:
             skip_problems = options.resume
         if options.path is not None:
-            solver.__init__(None, options)
             #solver = pickle.load(open(options.path, 'rb'))
             solver.load_model(options.path)
+
+    solver.w = options.init_w
 
     problem_no = 0
 
@@ -144,9 +147,6 @@ if __name__ == '__main__':
         with open(os.path.join(resultdir, options.outfile + '.csv'), 'a+') as result_file:
             line = problem_file.readline()
             p = prob()
-
-            if options.path is None:
-                solver.__init__(p,options)
 
             l = 0
             while line and l < options.training_episodes * options.episodes:
@@ -173,15 +173,3 @@ if __name__ == '__main__':
                     l = l + 1
             problem_no += 1
     Plotting.plot_stats(stats, blstats, rstats, smoothing_window = options.smoothing_window)
-
-    #f = open("optimal_states.list", "wb")
-    #pickle.dump(solver.optimal_states, f)
-
-    #f = open("optimal_states.list", "rb")
-    #opt_states = solver.optimal_states#pickle.load(f)
-    #for state in opt_states:
-    #    print(state.as_tensor(), solver.get_h(state, opt_states[-1]))
-    #solver.save("Models_tiles/10k_4", "memory_10k_4")
-    #print(solver.initial_state_hval)
-    #print(solver.final_state_hval)
-    #f.write(json.dumps(solver.optimal_states))
