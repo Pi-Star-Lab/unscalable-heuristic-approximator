@@ -39,6 +39,7 @@ class DLMC(AbstractSolver):
             self.update_target = options.update_target
             self.expansion_bound = options.expansion_bound
             self.train = options.train
+            self.counter = options.resume if options.resume is not None else 0
             self.w = 0 if self.train else 1
 
     def weighted_h(self, start, goal):
@@ -212,6 +213,7 @@ class DLMC(AbstractSolver):
     def save_weights_memory(self):
         path = self.save_path
         episode = self.counter
+        print("Saving Weights")
         self.h.save(os.path.join(path, 'weights', 'solver_{:07d}.pkl'.format(episode)))
         self.buffer.save(os.path.join(path, 'buffer', 'solver_{:07d}'.format(episode)))
 
