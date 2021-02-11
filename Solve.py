@@ -114,7 +114,7 @@ if __name__ == '__main__':
     stats = Plotting.EpisodeStats(
         solution_cost=np.zeros(problem_count*options.episodes),
         expanded=np.zeros(problem_count*options.episodes),
-        weights=np.zeros(problem_count*options.episodes),
+        trust_radius=np.zeros(problem_count*options.episodes),
         generated=np.zeros(problem_count*options.episodes))
     blstats = Plotting.BaselineStats(
         solution_cost=np.zeros(problem_count * options.episodes),
@@ -165,8 +165,8 @@ if __name__ == '__main__':
                     stats.solution_cost[l] = solver.statistics[Statistics.Solution.value]
                     stats.expanded[l] = solver.statistics[Statistics.Expanded.value]
                     stats.generated[l] = solver.statistics[Statistics.Generated.value]
-                    stats.weights[l] = solver.statistics[Statistics.Weights.value]
-                    print("cost={}, expanded={}, weight={}".format(stats.solution_cost[l], stats.expanded[l], stats.weights[l]))
+                    stats.trust_radius[l] = solver.statistics[Statistics.TrustRadius.value]
+                    print("cost={}, expanded={}, Trust Radius={}".format(stats.solution_cost[l], stats.expanded[l], stats.trust_radius[l]))
                     # Update baseline
                     run_baseline(blsolver, p, options, blstats, l)
                     update_ratio(stats,blstats,l,rstats)

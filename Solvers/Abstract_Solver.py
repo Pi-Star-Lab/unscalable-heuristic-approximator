@@ -44,4 +44,4 @@ class Statistics(Enum):
     Generated = 1
     Distance = 2
     Solution = 3
-    Weights = 4
+    TrustRadius = 4

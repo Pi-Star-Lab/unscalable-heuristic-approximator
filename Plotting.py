@@ -5,7 +5,7 @@ from matplotlib import pyplot as plt
 matplotlib.style.use('ggplot')
 #from mpl_toolkits.mplot3d import Axes3D
 
-EpisodeStats = namedtuple("Stats",["solution_cost", "expanded", "generated", "weights"])
+EpisodeStats = namedtuple("Stats",["solution_cost", "expanded", "generated", "trust_radius"])
 BaselineStats = namedtuple("BLStats",["solution_cost", "expanded", "generated"])
 
 def plot_stats(stats, blstates, rstats, smoothing_window=30, noshow=False):

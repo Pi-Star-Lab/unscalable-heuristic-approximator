@@ -4,6 +4,7 @@ import numpy as np
 import Utils
 from collections import deque
 from Solvers.A_Star import AStar
+from Solvers.Switched_A_Star import SwitchedAStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
@@ -28,9 +29,8 @@ class DLMC(AbstractSolver):
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
-        self.greedy_solver = AStar()
+        self.greedy_solver = SwitchedAStar()
         self.greedy_solver.__init__(problem,options, return_expanded = True)
-        self.w = 0
         self.counter = 0
         self.update_target = 100
         self.current_problem = None
@@ -40,10 +40,6 @@ class DLMC(AbstractSolver):
             self.expansion_bound = options.expansion_bound
             self.train = options.train
             self.counter = options.resume if options.resume is not None else 0
-            self.w = 0 if self.train else 1
-
-    def weighted_h(self, start, goal):
-        return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
 
     def init_h(self, input_dim, options):
         try:
@@ -81,18 +77,16 @@ class DLMC(AbstractSolver):
         self.current_problem = problem
 
         self.greedy_solver.__init__(return_expanded = True)
-        self.greedy_solver.h_func = self.weighted_h
-        path,expanded = self.greedy_solver.solve(problem, expansion_bound = 8 * self.expansion_bound)
-
+        #self.greedy_solver.h_func = self.weighted_h
+        path, expanded = self.greedy_solver.solve(problem, self.get_h, expansion_bound = 8 * self.expansion_bound)
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
-        self.statistics[Statistics.Weights.value] = self.w
+        #self.statistics[Statistics.Weights.value] = self.w
 
         if path:
             print("Path found. Length of Path: {}".format(len(path)))
         else:
             print("Couldn't find path under {} expansions".format(8 * self.expansion_bound))
             print("Dropping this episode and reducing the weight")
-            self.w = max(0, self.w - dw) if self.train else 1
             return
         expanded.reverse()
 
@@ -102,10 +96,6 @@ class DLMC(AbstractSolver):
         # Update weight
         self.remember(expanded)
         self.replay()
-        if self.statistics[0] < self.expansion_bound:
-            self.w = min(1, self.w + dw)
-        else:
-            self.w = max(0, self.w - dw)
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
     def get_h(self, state, goal):
@@ -119,10 +109,6 @@ class DLMC(AbstractSolver):
             return 0
         h = np.asscalar(self.target_model.predict(self.reshape(state)))
         return h
-
-    def target_weighted_predict(self, state, goal):
-        return self.w * self.target_predict(state, goal) + \
-                (1 - self.w) * state.get_h(goal)
 
     def target_bounded_predict(self, state, goal):
         return max(self.target_predict(state, goal), state.get_h(goal))
