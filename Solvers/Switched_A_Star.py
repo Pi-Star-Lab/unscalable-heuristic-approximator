@@ -48,17 +48,6 @@ class SwitchedAStar(AStar):
             if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
                 return False, expanded
 
-            sub_path = self.quick_search(current, h_theta, goal)
-            if sub_path is not None:
-                path = current.get_path() + sub_path
-                self.statistics[Statistics.Distance.value] = len(path)
-                self.statistics[Statistics.Solution.value] = len(path)
-                self.statistics[Statistics.Expanded.value] += len(sub_path)
-                self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
-                self.statistics[Statistics.TrustRadius.value] = len(sub_path)
-                return path, expanded + path
-                # return path and expanded
-
             successors = current.get_successors()
 
             if successors:
@@ -66,6 +55,18 @@ class SwitchedAStar(AStar):
 
                     if s in closed:
                         continue
+
+                    sub_path = self.quick_search(s, h_theta, goal)
+                    if sub_path is not None:
+                        path = current.get_path() + [s] + sub_path
+                        self.statistics[Statistics.Distance.value] = len(path)
+                        self.statistics[Statistics.Solution.value] = len(path)
+                        self.statistics[Statistics.Expanded.value] += len(sub_path) + 1
+                        self.statistics[Statistics.Generated.value] += len(sub_path) + 1#### Highly Incorrect!!!!!!!!!!
+                        self.statistics[Statistics.TrustRadius.value] = len(sub_path)
+                        return path, expanded + path
+                        # return path and expanded
+
 
                     self.set_h(s, goal)
 
