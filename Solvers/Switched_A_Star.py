@@ -22,6 +22,7 @@ class SwitchedAStar(AStar):
         goal = problem.goal
 
         expanded = []
+        self.trust_radius = float("inf")
         self.statistics[Statistics.Expanded.value] = 0
 
         self.set_h(start, goal)
@@ -64,6 +65,7 @@ class SwitchedAStar(AStar):
                         self.statistics[Statistics.Expanded.value] += len(sub_path) + 1
                         self.statistics[Statistics.Generated.value] += len(sub_path) + 1#### Highly Incorrect!!!!!!!!!!
                         self.statistics[Statistics.TrustRadius.value] = len(sub_path)
+                        print("r3", self.trust_radius)
                         return path, expanded + path
                         # return path and expanded
 
@@ -93,6 +95,9 @@ class SwitchedAStar(AStar):
 
     def quick_search(self, state, h, goal):
         h_theta_val = h(state, goal)
+        if h_theta_val > self.trust_radius:
+            return None
+        init_state_h_val = h_theta_val
         nodes = []
         for x in range(round(h_theta_val)):
             successors = state.get_successors()
@@ -102,6 +107,7 @@ class SwitchedAStar(AStar):
         if state == goal:
             return nodes
         else:
+            self.trust_radius = min(self.trust_radius, h_theta_val)
             return None
 
     def __str__(self):
