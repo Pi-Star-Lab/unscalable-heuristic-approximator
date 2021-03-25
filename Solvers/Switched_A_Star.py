@@ -49,7 +49,7 @@ class SwitchedAStar(AStar):
             if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
                 return False, expanded
 
-            sub_path = self.quick_search(current, h_theta, goal)
+            sub_path = self.quick_search(current, h_theta, goal, self.trust_radius)
             if sub_path is not None:
                 path = current.get_path() + sub_path
                 self.statistics[Statistics.Distance.value] = len(path)
@@ -94,9 +94,9 @@ class SwitchedAStar(AStar):
         self.statistics[Statistics.Solution.value] = -1
         return False
 
-    def quick_search(self, state, h, goal):
+    def quick_search(self, state, h, goal, trust_radius):
         h_theta_val = h(state, goal)
-        if h_theta_val > self.trust_radius:
+        if h_theta_val > trust_radius:
             return None
         init_state_h_val = h_theta_val
         nodes = []

@@ -114,7 +114,8 @@ class DLMC(AbstractSolver):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
     def remember(self, states):
-        target_values = self.get_target_values(states)
+        states, target_values = self.get_target_values(states)
+        print(len(states), len(target_values))
         for i, state in enumerate(states):
             if state == self.current_problem.goal:
                 cost = 0
@@ -144,24 +145,32 @@ class DLMC(AbstractSolver):
 
     def get_target_values(self, nodes):
         target_values = np.zeros((len(nodes)))
+        reliabilities = np.zeros((len(nodes)), dtype=int)
         X = set()
         update_idx = 0
         for i, x in enumerate(nodes):
             if x != self.current_problem.goal:
                 for state in x.get_successors():
-                    X.add(tuple(state.as_tensor()))
+                    X.add(state)
             if len(X) > self.boostrap_update_size:
                 X = list(X)
-                self.update_target_fn(nodes, list(X), target_values, update_idx, i + 1)
+                self.update_target_fn(nodes, list(X), target_values, update_idx, i + 1, reliabilities)
                 update_idx = i + 1
                 X = set()
         if len(nodes) != update_idx:
-            self.update_target_fn(nodes, list(X), target_values, update_idx, len(nodes))
-        return target_values
+            self.update_target_fn(nodes, list(X), target_values, update_idx, len(nodes), reliabilities)
+        return np.array(nodes)[reliabilities.astype(np.bool)], \
+                target_values[reliabilities.astype(np.bool)]
 
-    def update_target_fn(self, nodes, X, target_values, start, end):
-        vals = self.h.predict(np.array(X))
+    def update_target_fn(self, nodes, X, target_values, start, end, reliabilities):
+        X_ = []
+        for x in X:
+            X_.append(x.as_tensor())
+
+        vals = self.h.predict(np.array(X_))
+        r = self.get_reliability(X, vals)
         table = dict(zip(X, vals))
+        table_r = dict(zip(X, r))
         del X, vals
         for i in range(start, end):
             x = nodes[i]
@@ -169,18 +178,30 @@ class DLMC(AbstractSolver):
                 target_values[i] = 0
                 cost = 0
             else:
-                cost = 1 # Hard code vaues! Consider storing costs in an array
-                min_vals = []
+                cost = 1 # Hard code values! Consider storing costs in an array
+                min_val, min_state = float("inf"), 0
                 for state in x.get_successors():
                     hand_crafted_h = state.get_h(self.current_problem.goal)
                     if hand_crafted_h == 0:
-                        min_vals.append(cost)
+                        c = 1
                     else:
-                        min_vals.append(cost + max(table[tuple(state.as_tensor())], hand_crafted_h))
-                #min_target = self.get_target_value(x, self.current_problem.goal)
-                target_values[i] = min(min_vals)
+                        c = cost + table[state]
+
+                    if c < min_val:
+                        min_val = c
+                        min_state = state
+
+                reliabilities[i] = table_r[min_state]
+                target_values[i] = min_val
             i += 1
         return target_values
+
+    def get_reliability(self, X, vals):
+        reliabilities = np.zeros((len(X)))
+        for i,x in enumerate(X):
+            if self.greedy_solver.quick_search(x, self.get_h, self.current_problem.goal, vals[i]) is not None:
+                reliabilities[i] = 1
+        return reliabilities
 
     def reshape(self, state):
         x = state.as_tensor()
