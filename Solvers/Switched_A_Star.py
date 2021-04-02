@@ -50,14 +50,14 @@ class SwitchedAStar(AStar):
                 return False, expanded
 
             sub_path = self.quick_search(current, h_theta, goal)
-            if sub_path is not None:
+            if sub_path is not None and pr >= len(current.get_path()) + len(sub_path):
                 path = current.get_path() + sub_path
+                print("PR:", pr, "Length of Path:", len(path))
                 self.statistics[Statistics.Distance.value] = len(path)
                 self.statistics[Statistics.Solution.value] = len(path)
                 self.statistics[Statistics.Expanded.value] += len(sub_path)
                 self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
                 self.statistics[Statistics.TrustRadius.value] = len(sub_path)
-                print("r3", self.trust_radius)
                 return path, expanded + path
                 # return path and expanded
 

@@ -18,7 +18,7 @@ class ResBlock(nn.Module):
         return x
 
 class ResNN(FCNN):
-    def __init__(self, layers, num_res_blocks = 4):
+    def __init__(self, layers, num_res_blocks = 12):
         super(ResNN, self).__init__(layers)
         self.res_blocks = nn.ModuleList()
         for i in range(num_res_blocks):
