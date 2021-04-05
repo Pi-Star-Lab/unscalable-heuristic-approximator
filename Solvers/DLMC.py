@@ -51,14 +51,13 @@ class DLMC(AbstractSolver):
         learning_rate = options.learning_rate
         # Neural Net for h values
         model = ResNN([input_dim] + layers + [1])
-        target_model = ResNN([input_dim] + layers + [1])
+        #target_model = ResNN([input_dim] + layers + [1])
 
-        target_model.set_weights(model.get_weights())
+        #target_model.set_weights(model.get_weights())
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
         model.compile(lr=learning_rate)
         self.h = model
 
-        self.target_model = target_model
 
     def train(self, options):
         self.greedy_solver.h_func = None
@@ -78,7 +77,7 @@ class DLMC(AbstractSolver):
 
         self.greedy_solver.__init__(return_expanded = True)
         #self.greedy_solver.h_func = self.weighted_h
-        path, expanded = self.greedy_solver.solve(problem, self.get_h, expansion_bound = 8 * self.expansion_bound)
+        path, mc_path = self.greedy_solver.solve(problem, self.get_h, expansion_bound = 8 * self.expansion_bound)
         self.statistics = copy.deepcopy(self.greedy_solver.statistics)
         #self.statistics[Statistics.Weights.value] = self.w
 
@@ -88,13 +87,12 @@ class DLMC(AbstractSolver):
             print("Couldn't find path under {} expansions".format(8 * self.expansion_bound))
             print("Dropping this episode and reducing the weight")
             return
-        expanded.reverse()
 
         if not self.train:
             return
 
         # Update weight
-        self.remember(expanded)
+        self.remember(mc_path)
         self.replay()
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
@@ -114,6 +112,9 @@ class DLMC(AbstractSolver):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
     def remember(self, states):
+        """
+        don't need this, just MC rollouts
+        """
         target_values = self.get_target_values(states)
         for i, state in enumerate(states):
             if state == self.current_problem.goal:

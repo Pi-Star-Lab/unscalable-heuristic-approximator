@@ -22,6 +22,7 @@ class SwitchedAStar(AStar):
         goal = problem.goal
 
         expanded = []
+        mc_nodes = []
         self.trust_radius = float("inf")
         self.statistics[Statistics.Expanded.value] = 0
 
@@ -40,26 +41,38 @@ class SwitchedAStar(AStar):
                 self.statistics[Statistics.Solution.value] = best_cost
                 self.statistics[Statistics.TrustRadius.value] = 0
 
+                """
+                Temporary fix
+                """
                 if self.return_expanded:
-                    return goal.get_path(), expanded
+                    return goal.get_path(), mc_nodes
                 else:
                     return goal.get_path()
 
             self.statistics[Statistics.Expanded.value] += 1
             if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
-                return False, expanded
+                return False, []
 
             sub_path = self.quick_search(current, h_theta, goal)
-            if sub_path is not None and pr >= len(current.get_path()) + len(sub_path):
-                path = current.get_path() + sub_path
-                print("PR:", pr, "Length of Path:", len(path))
-                self.statistics[Statistics.Distance.value] = len(path)
-                self.statistics[Statistics.Solution.value] = len(path)
-                self.statistics[Statistics.Expanded.value] += len(sub_path)
-                self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
-                self.statistics[Statistics.TrustRadius.value] = len(sub_path)
-                return path, expanded + path
-                # return path and expanded
+            if sub_path is not None:
+                mc_nodes.append(sub_path)
+                if pr >= len(current.get_path()) + len(sub_path):
+                    path = current.get_path() + sub_path
+                    print("PR:", pr, "Length of Path:", len(path))
+                    self.statistics[Statistics.Distance.value] = len(path)
+                    self.statistics[Statistics.Solution.value] = len(path)
+                    self.statistics[Statistics.Expanded.value] += len(sub_path)
+                    self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
+                    self.statistics[Statistics.TrustRadius.value] = len(sub_path)
+
+                    """
+                    Temporary fix
+                    """
+                    if self.returned_expanded:
+                        return path, mc_nodes
+                    else:
+                        return path
+                    # return path and expanded
 
 
             successors = current.get_successors()
