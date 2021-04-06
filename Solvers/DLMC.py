@@ -61,7 +61,6 @@ class DLMC(AbstractSolver):
 
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer = ReplayBufferSearch(self.buffer_size)
 
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
@@ -93,7 +92,7 @@ class DLMC(AbstractSolver):
 
         # Update weight
         self.remember(mc_path)
-        self.replay()
+        #self.replay()
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
     def get_h(self, state, goal):
@@ -111,27 +110,21 @@ class DLMC(AbstractSolver):
     def target_bounded_predict(self, state, goal):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
-    def remember(self, states):
+    def remember(self, paths):
         """
         don't need this, just MC rollouts
         """
-        target_values = self.get_target_values(states)
-        for i, state in enumerate(states):
-            if state == self.current_problem.goal:
-                cost = 0
-            else:
-                cost = 1
-            self.buffer.append(state.as_tensor(), [state, cost], target_values[i])
+        print(paths)
+        #target_values = self.get_target_values(states)
+        for p in paths:
+            for i, n in p:
+                print(n)
 
     def replay(self):
         self.counter += 1
         if self.counter % self.update_target == 0:
-            print("Updating Target Weights...")
-            self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()
-            target_values = self.get_target_values([m[0] for m in self.buffer.memory])
-            self.buffer.update_target_buffer(target_values)
         #self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
