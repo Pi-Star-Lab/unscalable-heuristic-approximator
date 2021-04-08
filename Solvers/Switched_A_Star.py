@@ -32,8 +32,6 @@ class SwitchedAStar(AStar):
 
         while len(open) > 0:
             current = open.pop()
-            if self.return_expanded:
-                expanded.append(current)
             pr = current.get_f()
             if pr >= best_cost:
                 self.statistics[Statistics.Distance.value] = best_cost
@@ -41,7 +39,7 @@ class SwitchedAStar(AStar):
                 self.statistics[Statistics.TrustRadius.value] = 0
 
                 if self.return_expanded:
-                    return goal.get_path(), expanded
+                    return goal.get_path(), expanded + goal.get_path()
                 else:
                     return goal.get_path()
 
@@ -49,16 +47,17 @@ class SwitchedAStar(AStar):
             if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
                 return False, expanded
 
-            sub_path = self.quick_search(current, h_theta, goal)
+            self.trust_radius = pr
+            sub_path = self.quick_search(current, h_theta, goal, expanded)
             if sub_path is not None and pr >= len(current.get_path()) + len(sub_path):
                 path = current.get_path() + sub_path
                 print("PR:", pr, "Length of Path:", len(path))
                 self.statistics[Statistics.Distance.value] = len(path)
                 self.statistics[Statistics.Solution.value] = len(path)
-                self.statistics[Statistics.Expanded.value] += len(sub_path)
-                self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
+                #self.statistics[Statistics.Expanded.value] += len(sub_path)
+                #self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
                 self.statistics[Statistics.TrustRadius.value] = len(sub_path)
-                return path, expanded + path
+                return path, expanded
                 # return path and expanded
 
 
@@ -69,7 +68,6 @@ class SwitchedAStar(AStar):
 
                     if s in closed:
                         continue
-
 
                     self.set_h(s, goal)
 
@@ -94,7 +92,7 @@ class SwitchedAStar(AStar):
         self.statistics[Statistics.Solution.value] = -1
         return False
 
-    def quick_search(self, state, h, goal):
+    def quick_search(self, state, h, goal, searched):
         h_theta_val = h(state, goal)
         if h_theta_val > self.trust_radius:
             return None
@@ -104,10 +102,12 @@ class SwitchedAStar(AStar):
             successors = state.get_successors()
             state = successors[np.argmin([h(s, goal) for s in successors])]
             nodes.append(state)
+            searched.append(state)
 
         if state == goal:
             return nodes
         else:
+            # Do we want to keep this?
             self.trust_radius = min(self.trust_radius, h_theta_val)
             return None
 
