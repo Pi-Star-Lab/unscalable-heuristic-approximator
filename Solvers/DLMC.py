@@ -78,6 +78,10 @@ class DLMC(AbstractSolver):
 
     def solve(self, problem, dw = 0.02):
         # A single run
+        print("Problem's Start")
+        print(problem.start)
+        print("Problem's Goal")
+        print(problem.goal)
         self.current_problem = problem
 
         self.greedy_solver.__init__(return_expanded = True)

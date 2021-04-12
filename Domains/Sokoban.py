@@ -1,65 +1,47 @@
 import numpy as np
-from domains.environment import Environment
-
+from Domains.Abstract_State import AbstractState
+import Utils
 """
 Credits: levilelis Git repo: https://github.com/levilelis/h-levin/
 Modifications: sumedhpendurkar
 """
 
-class Sokoban(Environment):
+class Sokoban(AbstractState):
 
-    self._channel_walls = 0
-    self._channel_goals = 1
+    _channel_walls = 0
+    _channel_goals = 1
 
-    self._channel_boxes = 2
-    self._channel_man = 3
+    _channel_boxes = 2
+    _channel_man = 3
 
-    self._goal = '.'
-    self._man = '@'
-    self._wall = '#'
-    self._box = '$'
+    _goal = '.'
+    _man = '@'
+    _wall = '#'
+    _box = '%'
 
-    self._E = 0
-    self._W = 1
-    self._N = 2
-    self._S = 3
+    _E = 0
+    _W = 1
+    _N = 2
+    _S = 3
 
-    self._number_channels = 4
+    _number_channels = 4
+    _height = 10
+    _width = 10
 
-    def __init__(self, state, goal):
+    def __init__(self, state, g):
 
         # how to get model state in parsing (big issue)
         # what is state representation?
+        self._boxes = state[0]
+        self._maze = state[1]
+        self._x_man = state[2][0]
+        self._y_man = state[2][1]
+
         super(Sokoban, self).__init__(g) ## define goal
 
-    @staticmethod
-    def parse_state(string_state):
-        if len(string_state) > 0:
-           self._width = len(string_state[0])
-            self._height = len(string_state)
-
-            self._maze = np.zeros((self._height, self._width, 2))
-            self._boxes = np.zeros((self._height, self._width))
-
-            for i in range(self._height):
-                for j in range(self._width):
-                    if string_state[i][j] == self._goal:
-                        self._maze[i][j][self._channel_goals] = 1
-
-                    if string_state[i][j] == self._man:
-                        self._y_man = i
-                        self._x_man = j
-
-                    if string_state[i][j] == self._wall:
-                        self._maze[i][j][self._channel_walls] = 1
-
-                    if string_state[i][j] == self._box:
-                        self._boxes[i][j] = 1
-        #return a Sokoban object
-
     def copy(self):
-        copy_state = Sokoban()
 
+        copy_state = Sokoban((self._boxes.copy(), self._maze.copy(), (self._x_man, self._y_man)), 0)
         copy_state._width = self._width
         copy_state._height = self._height
         copy_state._maze = self._maze
@@ -81,64 +63,59 @@ class Sokoban(Environment):
         actions = []
 
         if self._x_man + 1 < self._width:
-            if (self._maze[self._y_man][self._x_man + 1][self._channel_walls] == 0 and
+            if (self._maze[self._y_man][self._x_man + 1][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man][self._x_man + 1] == 0):
 
                 actions.append(self._E)
-            elif (self._maze[self._y_man][self._x_man + 1][self._channel_walls] == 0 and
+            elif (self._maze[self._y_man][self._x_man + 1][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man][self._x_man + 1] == 1 and
                 self._x_man + 2 < self._width and
-                self._maze[self._y_man][self._x_man + 2][self._channel_walls] == 0 and
+                self._maze[self._y_man][self._x_man + 2][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man][self._x_man + 2] == 0):
 
                 actions.append(self._E)
 
         if self._x_man - 1 > 0:
-            if (self._maze[self._y_man][self._x_man - 1][self._channel_walls] == 0 and
+            if (self._maze[self._y_man][self._x_man - 1][Sokoban._channel_walls] == 0 and
                     self._boxes[self._y_man][self._x_man - 1] == 0):
 
                 actions.append(self._W)
 
-            elif (self._maze[self._y_man][self._x_man - 1][self._channel_walls] == 0 and
+            elif (self._maze[self._y_man][self._x_man - 1][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man][self._x_man - 1] == 1 and
                 self._x_man - 2 > 0 and
-                self._maze[self._y_man][self._x_man - 2][self._channel_walls] == 0 and
+                self._maze[self._y_man][self._x_man - 2][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man][self._x_man - 2] == 0):
 
                 actions.append(self._W)
 
         if self._y_man + 1 < self._height:
-            if (self._maze[self._y_man + 1][self._x_man][self._channel_walls] == 0 and
+            if (self._maze[self._y_man + 1][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man + 1][self._x_man] == 0):
 
                 actions.append(self._S)
-            elif (self._maze[self._y_man + 1][self._x_man][self._channel_walls] == 0 and
+            elif (self._maze[self._y_man + 1][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man + 1][self._x_man] == 1 and
                 self._y_man + 2 < self._height and
-                self._maze[self._y_man + 2][self._x_man][self._channel_walls] == 0 and
+                self._maze[self._y_man + 2][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man + 2][self._x_man] == 0):
 
                 actions.append(self._S)
 
         if self._y_man - 1 > 0:
-            if (self._maze[self._y_man - 1][self._x_man][self._channel_walls] == 0 and
+            if (self._maze[self._y_man - 1][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man - 1][self._x_man] == 0):
 
                 actions.append(self._N)
-            elif (self._maze[self._y_man - 1][self._x_man][self._channel_walls] == 0 and
+            elif (self._maze[self._y_man - 1][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man - 1][self._x_man] == 1 and
                 self._y_man - 2 > 0 and
-                self._maze[self._y_man - 2][self._x_man][self._channel_walls] == 0 and
+                self._maze[self._y_man - 2][self._x_man][Sokoban._channel_walls] == 0 and
                 self._boxes[self._y_man - 2][self._x_man] == 0):
 
                 actions.append(self._N)
 
-        return [self.apply_action(a) for a in actions]
-
-    def successors_parent_pruning(self, op):
-        actions = []
-
-        return self.successors()
+        return [self.copy().apply_action(a) for a in actions]
 
     def apply_action(self, action):
 
@@ -173,8 +150,10 @@ class Sokoban(Environment):
 #             self._puzzle[self._y_man][self._x_man][self._channel_man] = 0
 #             self._puzzle[self._y_man][self._x_man - 1][self._channel_man] = 1
             self._x_man = self._x_man - 1
+        return self
 
     def is_solution(self):
+        # change goal check for everything else, as this might have multiple goal states
         for i in range(self._height):
             for j in range(self._width):
                 if self._boxes[i][j] == 1 and self._maze[i][j][self._channel_goals] == 0:
@@ -182,29 +161,29 @@ class Sokoban(Environment):
         return True
 
     def as_tensor(self):
-        image = np.zeros((self._height, self._width, self._number_channels))
-        for i in range(self._height):
-            for j in range(self._width):
-                image[i][j][self._channel_goals] = self._maze[i][j][self._channel_goals]
-                image[i][j][self._channel_walls] = self._maze[i][j][self._channel_walls]
-                image[i][j][self._channel_boxes] = self._boxes[i][j]
+        image = np.zeros((Sokoban._height, Sokoban._width, Sokoban._number_channels))
+        for i in range(Sokoban._height):
+            for j in range(Sokoban._width):
+                image[i][j][Sokoban._channel_goals] = self._maze[i][j][Sokoban._channel_goals]
+                image[i][j][Sokoban._channel_walls] = self._maze[i][j][Sokoban._channel_walls]
+                image[i][j][Sokoban._channel_boxes] = self._boxes[i][j]
 
-        image[self._y_man][self._x_man][self._channel_man] = 1
+        image[self._y_man][self._x_man][Sokoban._channel_man] = 1
 
         #flatten the image here (else use a CNN
         return image.reshape(-1)
 
-    def get_h(self):
+    def get_h(self,goal):
         h = 0
         h_man = self._width + self._height
 
         for i in range(self._height):
             for j in range(self._width):
-                if self._boxes[i][j] == 1 and self._maze[i][j][self._channel_goals] == 0:
+                if self._boxes[i][j] == 1 and self._maze[i][j][Sokoban._channel_goals] == 0:
                     h_box = self._width + self._height
                     for l in range(self._height):
                         for m in range(self._width):
-                            if self._maze[l][m][self._channel_goals] == 1:
+                            if self._maze[l][m][Sokoban._channel_goals] == 1:
                                 dist_to_goal = abs(l - i) + abs(m - j)
                                 if dist_to_goal < h_box:
                                     h_box = dist_to_goal
@@ -221,24 +200,58 @@ class Sokoban(Environment):
         string = ""
         for i in range(self._height):
             for j in range(self._width):
-                if self._maze[i][j][self._channel_goals] == 1 and self._boxes[i][j] == 1:
-                    str += '*'
+                if self._maze[i][j][Sokoban._channel_goals] == 1 and self._boxes[i][j] == 1:
+                    string += '*'
                 elif i == self._y_man and j == self._x_man:
-                    str += self._man
-                elif self._maze[i][j][self._channel_goals] == 1:
-                    str += self._goal
-                elif self._maze[i][j][self._channel_walls] == 1:
-                    str += self._wall
+                    string += Sokoban._man
+                elif self._maze[i][j][Sokoban._channel_goals] == 1:
+                    string += Sokoban._goal
+                elif self._maze[i][j][Sokoban._channel_walls] == 1:
+                    string += Sokoban._wall
                 elif self._boxes[i][j] == 1:
-                    str += self._box
+                    string += Sokoban._box
                 else:
-                    str += ' '
-            print()
+                    string += ' '
+            string += "\n"
+        return string
 
     @staticmethod
-    def get_goal(size):
+    def parse_state(string_state):
+        if len(string_state) > 0:
+            _width = 10 #len(string_state[0])
+            _height = 10 #len(string_state)
+            width = _width
+            _maze = np.zeros((_height, _width, 2))
+            _boxes = np.zeros((_height, _width))
+            _x_man, _y_man = 0, 0
+            for i in range(_height):
+                for j in range(_width):
+                    if string_state[i * width + j] == Sokoban._goal:
+                        _maze[i][j][Sokoban._channel_goals] = 1
+
+                    if string_state[i * width  + j] == Sokoban._man:
+                        _y_man = i
+                        _x_man = j
+
+                    if string_state[i * width + j] == Sokoban._wall:
+                        _maze[i][j][Sokoban._channel_walls] = 1
+
+                    if string_state[i * width + j] == Sokoban._box:
+                        _boxes[i][j] = 1
+
+        return Sokoban((_boxes, _maze, (_x_man, _y_man)), 0)
+        #return a Sokoban object
+
+
+    @staticmethod
+    def get_goal(size = 10):
+        # Dummy get goal, because it needs to be specific to the problem
+        string = "".join([''.join(["#" for x in range(10)]) for y in range(10)])
+        return Sokoban.parse_state(string)
 
     @staticmethod
     def get_name():
         return "sokoban"
 
+    def as_list(self):
+        return []
