@@ -29,7 +29,7 @@ class DLMC(AbstractSolver):
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
         self.greedy_solver = AStar()
-        self.greedy_solver.__init__(problem,options, return_expanded = True)
+        self.greedy_solver.__init__(problem, options, return_expanded = True)
         self.w = 0
         self.counter = 0
         self.update_target = 100
@@ -78,10 +78,6 @@ class DLMC(AbstractSolver):
 
     def solve(self, problem, dw = 0.02):
         # A single run
-        print("Problem's Start")
-        print(problem.start)
-        print("Problem's Goal")
-        print(problem.goal)
         self.current_problem = problem
 
         self.greedy_solver.__init__(return_expanded = True)

@@ -18,6 +18,7 @@ class Sokoban(AbstractState):
     _man = '@'
     _wall = '#'
     _box = '%'
+    _box_on_goal = "*"
 
     _E = 0
     _W = 1
@@ -41,15 +42,15 @@ class Sokoban(AbstractState):
 
     def copy(self):
 
-        copy_state = Sokoban((self._boxes.copy(), self._maze.copy(), (self._x_man, self._y_man)), 0)
+        copy_state = Sokoban((self._boxes.copy(), self._maze.copy(), (self._x_man, self._y_man)), self.g)
         copy_state._width = self._width
         copy_state._height = self._height
-        copy_state._maze = self._maze
+        #copy_state._maze = self._maze
 
-        copy_state._x_man = self._x_man
-        copy_state._y_man = self._y_man
+        #copy_state._x_man = self._x_man
+        #copy_state._y_man = self._y_man
 
-        copy_state._boxes = self._boxes.copy()
+        #copy_state._boxes = self._boxes.copy()
 
         return copy_state
 
@@ -150,6 +151,7 @@ class Sokoban(AbstractState):
 #             self._puzzle[self._y_man][self._x_man][self._channel_man] = 0
 #             self._puzzle[self._y_man][self._x_man - 1][self._channel_man] = 1
             self._x_man = self._x_man - 1
+        self.g += 1
         return self
 
     def is_solution(self):
@@ -239,13 +241,15 @@ class Sokoban(AbstractState):
                     if string_state[i * width + j] == Sokoban._box:
                         _boxes[i][j] = 1
 
+                    if string_state[i * width + j] == Sokoban._box_on_goal:
+                        _boxes[i][j] = 1
+                        _maze[i][j][Sokoban._channel_goals] = 1
         return Sokoban((_boxes, _maze, (_x_man, _y_man)), 0)
-        #return a Sokoban object
 
 
     @staticmethod
     def get_goal(size = 10):
-        # Dummy get goal, because it needs to be specific to the problem
+        # Dummy get goal, because it needs to be specific to the problem, thus cannot be static
         string = "".join([''.join(["#" for x in range(10)]) for y in range(10)])
         return Sokoban.parse_state(string)
 
@@ -254,4 +258,7 @@ class Sokoban(AbstractState):
         return "sokoban"
 
     def as_list(self):
+        """
+        Not valid
+        """
         return []
