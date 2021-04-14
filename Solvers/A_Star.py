@@ -55,7 +55,6 @@ class AStar(AbstractSolver):
                 self.statistics[Statistics.Solution.value] = best_cost
 
                 if self.return_expanded:
-                    print("best Cost", best_cost)
                     return goal.get_path(), expanded
                 else:
                     return goal.get_path()

@@ -66,7 +66,7 @@ class DLMC(AbstractSolver):
 
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer = PrioritizedReplayBufferSearch(self.buffer_size)
+        self.buffer = ReplayBufferSearch(self.buffer_size)
 
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
