@@ -13,6 +13,7 @@ class SwitchedAStar(AStar):
     noise_decay = 0.97
 
     def __init__(self,problem=None,options=None, return_expanded = False):
+        self.return_expanded = return_expanded
         super(SwitchedAStar,self).__init__(problem, options, return_expanded)
 
     def solve(self,problem, h_theta, expansion_bound = None):
@@ -36,6 +37,33 @@ class SwitchedAStar(AStar):
             if self.return_expanded:
                 expanded.append(current)
             pr = current.get_f()
+            sub_path = self.quick_search(current, h_theta, goal)
+            if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
+                return False, []
+
+            if sub_path is not None:
+                if sub_path[0].parent is None:
+                    mc_nodes.append(sub_path)
+                else:
+                    mc_nodes.append([sub_path[0].parent] + sub_path)
+                if pr >= len(current.get_path()) + len(sub_path):
+                    path = current.get_path() + sub_path
+                    print("PR:", pr, "Length of Path:", len(path))
+                    self.statistics[Statistics.Distance.value] = len(path)
+                    self.statistics[Statistics.Solution.value] = len(path)
+                    self.statistics[Statistics.Expanded.value] += len(sub_path)
+                    self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
+                    self.statistics[Statistics.TrustRadius.value] = len(sub_path)
+
+                    """
+                    Temporary fix
+                    """
+                    if self.return_expanded:
+                        return path, mc_nodes
+                    else:
+                        return path
+                    # return path and expanded
+
             if pr >= best_cost:
                 self.statistics[Statistics.Distance.value] = best_cost
                 self.statistics[Statistics.Solution.value] = best_cost
@@ -50,30 +78,6 @@ class SwitchedAStar(AStar):
                     return goal.get_path()
 
             self.statistics[Statistics.Expanded.value] += 1
-            if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
-                return False, []
-
-            sub_path = self.quick_search(current, h_theta, goal)
-            if sub_path is not None:
-                mc_nodes.append(sub_path)
-                if pr >= len(current.get_path()) + len(sub_path):
-                    path = current.get_path() + sub_path
-                    print("PR:", pr, "Length of Path:", len(path))
-                    self.statistics[Statistics.Distance.value] = len(path)
-                    self.statistics[Statistics.Solution.value] = len(path)
-                    self.statistics[Statistics.Expanded.value] += len(sub_path)
-                    self.statistics[Statistics.Generated.value] += len(sub_path) #### Highly Incorrect!!!!!!!!!!
-                    self.statistics[Statistics.TrustRadius.value] = len(sub_path)
-
-                    """
-                    Temporary fix
-                    """
-                    if self.returned_expanded:
-                        return path, mc_nodes
-                    else:
-                        return path
-                    # return path and expanded
-
 
             successors = current.get_successors()
 
@@ -112,7 +116,7 @@ class SwitchedAStar(AStar):
         if h_theta_val > self.trust_radius:
             return None
         init_state_h_val = h_theta_val
-        nodes = []
+        nodes = [state]
         for x in range(round(h_theta_val)):
             successors = state.get_successors()
             state = successors[np.argmin([h(s, goal) for s in successors])]
@@ -121,7 +125,7 @@ class SwitchedAStar(AStar):
         if state == goal:
             return nodes
         else:
-            self.trust_radius = min(self.trust_radius, h_theta_val)
+            #self.trust_radius = min(self.trust_radius, h_theta_val)
             return None
 
     def __str__(self):

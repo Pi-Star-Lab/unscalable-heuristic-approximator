@@ -34,6 +34,8 @@ class DLMC(AbstractSolver):
         self.counter = 0
         self.update_target = 100
         self.current_problem = None
+        self.x = None
+        self.y = None
 
         if options is not None:
             self.update_target = options.update_target
@@ -91,8 +93,9 @@ class DLMC(AbstractSolver):
             return
 
         # Update weight
+        print(len(mc_path))
         self.remember(mc_path)
-        #self.replay()
+        self.replay()
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
     def get_h(self, state, goal):
@@ -114,20 +117,23 @@ class DLMC(AbstractSolver):
         """
         don't need this, just MC rollouts
         """
-        print(paths)
         #target_values = self.get_target_values(states)
+        self.x = []
+        self.y = []
         for p in paths:
-            for i, n in p:
-                print(n)
+            p.reverse()
+            for i, n in enumerate(p):
+                self.x.append(n.as_tensor())
+                self.y.append(i)
+        self.x = np.array(self.x)
+        self.y = np.array(self.y)
 
     def replay(self):
         self.counter += 1
         if self.counter % self.update_target == 0:
-
-            self.save_weights_memory()
-        #self.buffer.set_predict_function(self.h.predict)
-        x, y = self.buffer.sample(self.sample_size)
-        self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
+            print("write code to save stuff")
+            #self.save_weights_memory()
+        self.h.run_epoch(self.x, self.y, batch_size=DLMC.batch_size, verbose=1)
 
     def get_target_value(self, state, goal):
         """
