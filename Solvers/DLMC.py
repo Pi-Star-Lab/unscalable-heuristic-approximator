@@ -145,7 +145,7 @@ class DLMC(AbstractSolver):
             self.save_weights_memory()
             target_values = self.get_target_values([m[0] for m in self.buffer.memory])
             self.buffer.update_target_buffer(target_values)
-        self.buffer.set_predict_function(self.h.predict)
+        #self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 

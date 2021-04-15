@@ -168,8 +168,8 @@ if __name__ == '__main__':
                     stats.weights[l] = solver.statistics[Statistics.Weights.value]
                     print("cost={}, expanded={}, weight={}".format(stats.solution_cost[l], stats.expanded[l], stats.weights[l]))
                     # Update baseline
-                    run_baseline(blsolver, p, options, blstats, l)
-                    update_ratio(stats,blstats,l,rstats)
+                    #run_baseline(blsolver, p, options, blstats, l)
+                    #update_ratio(stats,blstats,l,rstats)
                     l = l + 1
             problem_no += 1
     Plotting.plot_stats(stats, blstats, rstats, smoothing_window = options.smoothing_window)
