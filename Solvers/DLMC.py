@@ -69,7 +69,7 @@ class DLMC(AbstractSolver):
         self.buffer = ReplayBufferSearch(self.buffer_size)
 
         cls = prob.get_domain_class(options.training_domain)
-        self.init_h(len(cls.get_goal(options.training_size).as_tensor()), options)
+        self.init_h(len(cls.get_goal_dummy(options.training_size).as_tensor()), options)
         self.save_path = options.save_path
         if not os.path.exists(os.path.join(self.save_path, 'weights')):
             os.makedirs(os.path.join(self.save_path, 'weights'))
@@ -109,13 +109,13 @@ class DLMC(AbstractSolver):
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
     def get_h(self, state, goal):
-        if state == goal:
+        if state.is_solution():
             return 0
         h = np.asscalar(self.h.predict(self.reshape(state)))
         return h
 
     def target_predict(self, state, goal):
-        if state == goal:
+        if state.is_solution():
             return 0
         h = np.asscalar(self.target_model.predict(self.reshape(state)))
         return h
@@ -130,7 +130,7 @@ class DLMC(AbstractSolver):
     def remember(self, states):
         target_values = self.get_target_values(states)
         for i, state in enumerate(states):
-            if state == self.current_problem.goal:
+            if state.is_solution():
                 cost = 0
             else:
                 cost = 1
@@ -161,7 +161,7 @@ class DLMC(AbstractSolver):
         X = set()
         update_idx = 0
         for i, x in enumerate(nodes):
-            if x != self.current_problem.goal:
+            if not x.is_solution():
                 for state in x.get_successors():
                     X.add(tuple(state.as_tensor()))
             if len(X) > self.boostrap_update_size:
@@ -179,7 +179,7 @@ class DLMC(AbstractSolver):
         del X, vals
         for i in range(start, end):
             x = nodes[i]
-            if x == self.current_problem.goal:
+            if x.is_solution():
                 target_values[i] = 0
                 cost = 0
             else:

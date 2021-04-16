@@ -135,6 +135,9 @@ class Rubik(AbstractState):
         g_f =  [mc[x] + me[x] for x in range(len(me))]
         return (max(g_f) + min(g_f)) / 4
 
+    def is_solution(self):
+        return self == Rubik.get_goal_dummy(3)
+
     @staticmethod
     def parse_state(string):
         string = string[1:-1].split(',') # Change "[0,1,2,3]" to '0', '1', '2', '3'
@@ -144,7 +147,7 @@ class Rubik(AbstractState):
         return Rubik(cube,0)
 
     @staticmethod
-    def get_goal(size):
+    def get_goal_dummy(size):
         cube = []
         for f in range(6):
             for i in range(size**2):

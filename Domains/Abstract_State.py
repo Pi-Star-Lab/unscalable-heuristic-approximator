@@ -48,6 +48,11 @@ class AbstractState(ABC):
         pass
 
     @abstractmethod
+    def is_solution(self):
+        pass
+
+
+    @abstractmethod
     def get_successors(self):
         pass
 
@@ -76,5 +81,5 @@ class AbstractState(ABC):
         pass
 
     @staticmethod
-    def get_goal(size):
+    def get_goal_dummy(size):
         pass

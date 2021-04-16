@@ -79,7 +79,7 @@ class AStar(AbstractSolver):
                         else:
                             open.remove(s)
 
-                    if s == problem.goal and s.g < best_cost:
+                    if s.is_solution() and s.g < best_cost:
                         best_cost = s.g
                         goal = s
 
@@ -91,7 +91,11 @@ class AStar(AbstractSolver):
 
         self.statistics[Statistics.Distance.value] = -1
         self.statistics[Statistics.Solution.value] = -1
-        return False
+
+        if self.return_expanded:
+            return False, []
+        else:
+            return False
 
     def set_h(self,state,goal):
         if self.h_func:

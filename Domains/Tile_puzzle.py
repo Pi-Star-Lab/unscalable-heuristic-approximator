@@ -82,6 +82,9 @@ class Tile(AbstractState):
         """
         return np.eye(len(self.board))[self.board].reshape(-1)
 
+    def is_solution(self):
+        return self == Tile.get_goal_dummy(len(self.board))
+
     @staticmethod
     def parse_state(string):
         string = string[1:-1].split(',') # Change "[0,1,2,3]" to '0', '1', '2', '3'
@@ -91,7 +94,7 @@ class Tile(AbstractState):
         return Tile(board,0)
 
     @staticmethod
-    def get_goal(size):
+    def get_goal_dummy(size):
         tiles = size**2
         board = [i for i in range(tiles)]
         return Tile(board, 0)

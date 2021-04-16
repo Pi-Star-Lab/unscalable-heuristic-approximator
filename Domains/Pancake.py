@@ -51,13 +51,16 @@ class Pancake(AbstractState):
     def as_list(self):
         return self.stack
 
+    def is_solution(self):
+        return self == Pancake.get_goal_dummy(len(self.stack))
+
     @staticmethod
     def parse_state(string):
         stack = Utils.parse_list(string)
         return Pancake(stack,0)
 
     @staticmethod
-    def get_goal(size):
+    def get_goal_dummy(size):
         stack = [i for i in range(size)]
         return Pancake(stack,0)
 

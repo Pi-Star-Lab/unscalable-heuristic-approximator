@@ -217,6 +217,13 @@ class Sokoban(AbstractState):
             string += "\n"
         return string
 
+    def is_solution(self):
+        for i in range(self._height):
+            for j in range(self._width):
+                if self._boxes[i][j] == 1 and self._maze[i][j][self._channel_goals] == 0:
+                    return False
+        return True
+
     @staticmethod
     def parse_state(string_state):
         if len(string_state) > 0:
@@ -248,7 +255,7 @@ class Sokoban(AbstractState):
 
 
     @staticmethod
-    def get_goal(size = 10):
+    def get_goal_dummy(size = 10):
         # Dummy get goal, because it needs to be specific to the problem, thus cannot be static
         string = "".join([''.join(["#" for x in range(10)]) for y in range(10)])
         return Sokoban.parse_state(string)
