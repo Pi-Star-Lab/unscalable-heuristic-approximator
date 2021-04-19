@@ -173,7 +173,8 @@ class Sokoban(AbstractState):
         image[self._y_man][self._x_man][Sokoban._channel_man] = 1
 
         #flatten the image here (else use a CNN
-        return image.reshape(-1)
+        return image.transpose(2, 0, 1)
+        #return image.reshape(1)
 
     def get_h(self,goal):
         h = 0

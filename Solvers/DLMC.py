@@ -9,6 +9,7 @@ from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
 from FCNN import FCNN
 from ResNN import ResNN
+from CNN import CNN
 from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
 
 import logging
@@ -54,8 +55,8 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = ResNN([input_dim] + layers + [1])
-        target_model = ResNN([input_dim] + layers + [1])
+        model = CNN([input_dim] + layers + [1])
+        target_model = CNN([input_dim] + layers + [1])
 
         target_model.set_weights(model.get_weights())
         #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
@@ -163,7 +164,7 @@ class DLMC(AbstractSolver):
         for i, x in enumerate(nodes):
             if not x.is_solution():
                 for state in x.get_successors():
-                    X.add(tuple(state.as_tensor()))
+                    X.add(state)
             if len(X) > self.boostrap_update_size:
                 X = list(X)
                 self.update_target_fn(nodes, list(X), target_values, update_idx, i + 1)
@@ -174,7 +175,7 @@ class DLMC(AbstractSolver):
         return target_values
 
     def update_target_fn(self, nodes, X, target_values, start, end):
-        vals = self.h.predict(np.array(X))
+        vals = self.h.predict(np.array([x.as_tensor() for x in X]))
         table = dict(zip(X, vals))
         del X, vals
         for i in range(start, end):
@@ -190,7 +191,7 @@ class DLMC(AbstractSolver):
                     if hand_crafted_h == 0:
                         min_vals.append(cost)
                     else:
-                        min_vals.append(cost + max(table[tuple(state.as_tensor())], hand_crafted_h))
+                        min_vals.append(cost + max(table[state], hand_crafted_h))
                 #min_target = self.get_target_value(x, self.current_problem.goal)
                 target_values[i] = min(min_vals)
             i += 1
@@ -198,7 +199,8 @@ class DLMC(AbstractSolver):
 
     def reshape(self, state):
         x = state.as_tensor()
-        return np.reshape(state.as_tensor(), [1, len(x)])
+        #return np.reshape(state.as_tensor(), [1, len(x)])
+        return np.expand_dims(state.as_tensor(), axis = 0)
 
     def save(self, path):
         f = open(path + '.pkl', "wb")
