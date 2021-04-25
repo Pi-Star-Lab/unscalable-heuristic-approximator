@@ -70,7 +70,7 @@ class Witness(AbstractState):
         super(Witness, self).__init__(g)
 
     def __str__(self):
-        state_str = 'Cells: \n'
+        state_str = '\nCells: \n'
         state_str += '\n'.join('\t'.join('%d' %x for x in y) for y in self._cells)
         state_str += '\nDots: \n'
         state_str += '\n'.join('\t'.join('%d' %x for x in y) for y in self._dots)
@@ -532,7 +532,8 @@ class Witness(AbstractState):
         if self._column_tip - 1 >= 0 and self._h_seg[self._line_tip][self._column_tip-1] == 0 and self._dots[self._line_tip][self._column_tip-1] == 0:
             actions.append(3)
 
-        return [self.copy().apply_action(a) for a in actions]
+        successors = [self.copy().apply_action(a) for a in actions]
+        return successors
 
     def apply_action(self, a):
         """
@@ -559,7 +560,7 @@ class Witness(AbstractState):
             self._h_seg[self._line_tip][self._column_tip-1] = 1
             self._dots[self._line_tip][self._column_tip-1] = 1
             self._column_tip -= 1
-
+        self.g += 1
         return self
 
     def has_tip_reached_goal(self):
