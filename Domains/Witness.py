@@ -6,6 +6,11 @@ import random
 from collections import deque
 import copy
 from Domains.Abstract_State import AbstractState
+"""
+Credits: levilelis Git repo: https://github.com/levilelis/h-levin/
+Modifications: sumedhpendurkar
+"""
+
 
 class InvalidPuzzlePositionException(Exception):
     pass
@@ -36,7 +41,7 @@ class Witness(AbstractState):
     # Possible colors for separable bullets
     _colors = ['b', 'r', 'g', 'c', 'y', 'm']
 
-    def __init__(self, lines=1, columns=1, line_init=0, column_init=0, line_goal=1, column_goal=1, max_lines=11, max_columns=11):
+    def __init__(self, state, g):
         """
         GameState's constructor. The constructor receives as input the variable lines and columns,
          which specify the number of lines and columns of the puzzle; line_init and column_init speficy
@@ -48,44 +53,23 @@ class Witness(AbstractState):
          The constructor has a step of default values for the variable in case one wants to read a puzzle
          from a text file through method read_state.
         """
-        self._v_seg = np.zeros((lines, columns+1))
-        self._h_seg = np.zeros((lines+1, columns))
-        self._dots = np.zeros((lines+1, columns+1))
-        self._cells = np.zeros((lines, columns))
+        self._lines = state[0][0]
+        self._columns = state[0][1]
+        self._line_init = state[1][0]
+        self._column_init = state[1][1]
+        self._line_goal = state[2][0]
+        self._column_goal = state[2][1]
+        self.__init_structures()
+        self._max_lines = 11
+        self._max_columns = 11
 
-        self._column_init = column_init
-        self._line_init = line_init
-        self._column_goal = column_goal
-        self._line_goal = line_goal
-        self._lines = lines
-        self._columns = columns
-        self._line_tip = line_init
-        self._column_tip = column_init
-        self._max_lines = max_lines
-        self._max_columns = max_columns
+        for numbers in state[3:]:
+            numbers = list(numbers)
+            self._cells[int(numbers[0])][int(numbers[1])] = int(numbers[2])
 
-        # Raises an exception if the initial position of the snake equals is goal position
-        if self._column_init == self._column_goal and self._line_init == self._line_goal:
-            raise InvalidPuzzlePositionException('Initial postion of the snake cannot be equal its goal position', 'Initial: ' +
-                                                 str(self._line_init) + ', ' +  str(self._column_init) +
-                                                 ' Goal: ' + str(self._line_goal) + ', ' +  str(self._column_goal))
+        super(Witness, self).__init__(g)
 
-        # Raises an exception if the initial position of the snake is invalid
-        if self._column_init < 0 or self._line_init < 0 or self._column_init > self._columns or self._line_init > self._lines:
-            raise InvalidPuzzlePositionException('Initial position of the snake is invalid',
-                                                 str(self._line_init) + ', ' +  str(self._column_init))
-
-        # Raises an exception if the goal position of the snake is invalid
-        if self._column_goal < 0 or self._line_goal < 0 or self._column_goal > self._columns or self._line_goal > self._lines:
-            raise InvalidPuzzlePositionException('Goal position of the snake is invalid',
-                                                 str(self._line_goal) + ', ' +  str(self._column_goal))
-
-        # Initializing the tip of the snake
-        self._dots[self._line_tip][self._column_tip] = 1
-
-        self._solution_depth = -1
-
-    def __repr__(self):
+    def __str__(self):
         state_str = 'Cells: \n'
         state_str += '\n'.join('\t'.join('%d' %x for x in y) for y in self._cells)
         state_str += '\nDots: \n'
@@ -163,7 +147,7 @@ class Witness(AbstractState):
         self._cells = np.flipud(self._cells)
 
 
-    def get_image_representation(self):
+    def as_tensor(self):
         """
         Generates an image representation for the puzzle. Currently the method supports 4 colors and includes
         the following channels (third dimension of image): one channel for each color; one channel with 1's
@@ -222,7 +206,7 @@ class Witness(AbstractState):
         channel_number += 1
         image[2*self._line_init][2*self._column_init][channel_number] = 1
 
-        return image
+        return image.transpose(2, 0, 1)
 
     def distance_images(self, other):
         distance = 0
@@ -319,7 +303,6 @@ class Witness(AbstractState):
                     self._line_goal == other._line_goal and self._line_tip == other._line_tip and
                     self._column_tip == other._column_tip and np.array_equal(self._dots, other._dots)
                 )
-        #return np.array_equal(self._v_seg, other._v_seg) and np.array_equal(self._h_seg, other._h_seg) and self.__cell_color_invariant_eq__(other)
 
     def color_invariant_eq(self, other):
         return np.array_equal(self._v_seg, other._v_seg) and np.array_equal(self._h_seg, other._h_seg) and self.__cell_color_invariant_eq__(other)
@@ -518,7 +501,7 @@ class Witness(AbstractState):
             actions.append(3)
         return actions
 
-    def successors(self):
+    def get_successors(self):
         """
         Successor function used by planners trying to solve the puzzle. The method returns
         a list with legal actions for the state. The valid actions for the domain are {U, D, L, R}.
@@ -548,7 +531,8 @@ class Witness(AbstractState):
         #moving left
         if self._column_tip - 1 >= 0 and self._h_seg[self._line_tip][self._column_tip-1] == 0 and self._dots[self._line_tip][self._column_tip-1] == 0:
             actions.append(3)
-        return actions
+
+        return [self.copy().apply_action(a) for a in actions]
 
     def apply_action(self, a):
         """
@@ -576,6 +560,8 @@ class Witness(AbstractState):
             self._dots[self._line_tip][self._column_tip-1] = 1
             self._column_tip -= 1
 
+        return self
+
     def has_tip_reached_goal(self):
         """
         Verifies whether the snake has reached the goal position. Note this is not a goal
@@ -599,6 +585,12 @@ class Witness(AbstractState):
             if self.has_tip_reached_goal():
                 return
             actions = self.successors()
+
+    def as_list(self):
+        """
+        Doesn't work, need to address properly
+        """
+        return self._cells
 
     def is_solution(self):
         """
@@ -777,34 +769,21 @@ class Witness(AbstractState):
     def get_name(self):
         return self._filename
 
-    def set_solution_depth(self, depth):
-        self._solution_depth = depth
-
-    def get_solution_depth(self):
-        return self._solution_depth
-
     def copy(self):
         return copy.deepcopy(self)
 
-#     def copy(self):
-#         copy_state = WitnessState(self._lines,
-#                                   self._columns,
-#                                   self._line_init,
-#                                   self._column_init,
-#                                   self._line_goal,
-#                                   self._column_goal,
-#                                   self._max_lines,
-#                                   self._max_columns)
-#
-#         copy_state._line_tip = self._line_tip
-#         copy_state._column_tip = self._column_tip
-#         copy_state._dots[self._line_tip][self._column_tip] = 1
-#
-#         copy_state._v_seg = self._v_seg.copy()
-#         copy_state._h_seg = self._h_seg.copy()
-#         copy_state._cells = self._cells.copy()
-#
-#         return copy_state
+    @staticmethod
+    def parse_state(string_state):
+        state = []
+        parsed = string_state.split("|")
+        print(parsed[0].split(" "))
+        initials = list(map(int, parsed[0][:-1].split(" ")))
+        state.append((initials[0], initials[1]))
+        state.append((initials[2], initials[3]))
+        state.append((initials[4], initials[5]))
+        for x in parsed[1:]:
+            state.append(map(int, x.split(" ")))
+        return Witness(state, 0)
 
     def read_state_from_string(self, puzzle):
         """
@@ -863,5 +842,10 @@ class Witness(AbstractState):
                     numbers = t.split(' ')
                     self._cells[int(numbers[0])][int(numbers[1])] = int(numbers[2])
 
-    def heuristic_value(self):
+
+    def get_h(self, goal):
         return abs(self._column_tip - self._column_goal) + abs(self._line_tip - self._line_goal)
+
+    @staticmethod
+    def get_name():
+        return "witness"
