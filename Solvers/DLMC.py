@@ -193,7 +193,10 @@ class DLMC(AbstractSolver):
                     else:
                         min_vals.append(cost + max(table[state], hand_crafted_h))
                 #min_target = self.get_target_value(x, self.current_problem.goal)
-                target_values[i] = min(min_vals)
+                if min_vals == []:
+                    target_values[i] = 40 # some large number, because no neighbour, dead end!
+                else:
+                    target_values[i] = min(min_vals)
             i += 1
         return target_values
 

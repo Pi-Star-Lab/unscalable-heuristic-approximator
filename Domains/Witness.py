@@ -777,7 +777,6 @@ class Witness(AbstractState):
     def parse_state(string_state):
         state = []
         parsed = string_state.split("|")
-        print(parsed[0].split(" "))
         initials = list(map(int, parsed[0][:-1].split(" ")))
         state.append((initials[0], initials[1]))
         state.append((initials[2], initials[3]))
@@ -846,6 +845,12 @@ class Witness(AbstractState):
 
     def get_h(self, goal):
         return abs(self._column_tip - self._column_goal) + abs(self._line_tip - self._line_goal)
+    @staticmethod
+    def get_goal_dummy(size):
+        tiles = size**2
+        board = [i for i in range(tiles)]
+        string_state = "4 4 0 0 4 4 |0 1 2"
+        return Witness.parse_state(string_state)
 
     @staticmethod
     def get_name():
