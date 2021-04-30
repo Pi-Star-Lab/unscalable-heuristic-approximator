@@ -4,6 +4,7 @@ import numpy as np
 import Utils
 from collections import deque
 from Solvers.A_Star import AStar
+from Solvers.Multiple_Sol_A_Star import MultipleAStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
@@ -29,7 +30,7 @@ class DLMC(AbstractSolver):
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
-        self.greedy_solver = AStar()
+        self.greedy_solver = MultipleAStar()
         self.greedy_solver.__init__(problem, options, return_expanded = True)
         self.w = 0
         self.counter = 0
@@ -55,20 +56,16 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = CNN([input_dim] + layers + [1])
-        target_model = CNN([input_dim] + layers + [1])
+        model = ResNN([input_dim] + layers + [1])
 
-        target_model.set_weights(model.get_weights())
-        #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
         model.compile(lr=learning_rate)
         self.h = model
 
-        self.target_model = target_model
-
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer = PrioritizedReplayBufferSearch(self.buffer_size)
 
+        self.x = None
+        self.y = None
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal_dummy(options.training_size).as_tensor()), options)
         self.save_path = options.save_path
@@ -95,7 +92,6 @@ class DLMC(AbstractSolver):
             print("Dropping this episode and reducing the weight")
             self.w = max(0, self.w - dw) if self.train else 1
             return
-        expanded.reverse()
 
         if not self.train:
             return
@@ -128,27 +124,21 @@ class DLMC(AbstractSolver):
     def target_bounded_predict(self, state, goal):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
-    def remember(self, states):
-        target_values = self.get_target_values(states)
-        for i, state in enumerate(states):
-            if state.is_solution():
-                cost = 0
-            else:
-                cost = 1
-            self.buffer.append(state.as_tensor(), [state, cost], target_values[i])
+    def remember(self, to_update):
+        self.x = []
+        self.y = []
+        for x in to_update.keys():
+            self.x.append(x.as_tensor())
+            self.y.append(to_update[x])
+        self.x = np.array(self.x)
+        self.y = np.array(self.y)
 
     def replay(self):
         self.counter += 1
         if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
-            self.target_model.set_weights(self.h.get_weights())
-
             self.save_weights_memory()
-            target_values = self.get_target_values([m[0] for m in self.buffer.memory])
-            self.buffer.update_target_buffer(target_values)
-        self.buffer.set_predict_function(self.h.predict)
-        x, y = self.buffer.sample(self.sample_size)
-        self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
+        self.h.run_epoch(x=self.x, y=self.y, batch_size=DLMC.batch_size, verbose=1)
 
     def get_target_value(self, state, goal):
         """
@@ -220,7 +210,6 @@ class DLMC(AbstractSolver):
         episode = self.counter
         print("Saving Weights")
         self.h.save(os.path.join(path, 'weights', 'solver_{:07d}.pkl'.format(episode)))
-        self.buffer.save(os.path.join(path, 'buffer', 'solver_{:07d}'.format(episode)))
 
     def load_weights_memory(self, episode):
 

@@ -60,7 +60,7 @@ class FCNN(nn.Module):
         self.loss_fn.to(self.device)
         self.to(self.device)
 
-    def predict(self, x, batch_size = 2e4):
+    def predict(self, x, batch_size = 1e3):
         batch_size = int(min(x.shape[0], batch_size))
         n_batches = math.ceil(x.shape[0] / batch_size)
         y = []
@@ -72,7 +72,7 @@ class FCNN(nn.Module):
                 y.append(self.forward(local_x))
         return torch.cat(y)
 
-    def run_epoch(self, x, y, batch_size = 1e10, verbose = 1):
+    def run_epoch(self, x, y, batch_size = 1e5, verbose = 1):
 
         if self.device is None:
             Exception("Make sure you compile the model first!")

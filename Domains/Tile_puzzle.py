@@ -83,7 +83,10 @@ class Tile(AbstractState):
         return np.eye(len(self.board))[self.board].reshape(-1)
 
     def is_solution(self):
-        return self == Tile.get_goal_dummy(len(self.board))
+        for x in range(len(self.board)-1):
+            if self.board[x] != self.board[x + 1] - 1:
+                return False
+        return True
 
     @staticmethod
     def parse_state(string):

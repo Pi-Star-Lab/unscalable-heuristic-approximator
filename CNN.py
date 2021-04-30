@@ -17,6 +17,7 @@ class CNN(FCNN):
             self.convs.append(nn.Conv2d(dim, filters, kernel_size = 3, padding = 1))
             dim = filters
         layers[0] = 10 * 10 * filters
+        #layers[0] = 22 * 22 * filters
         self.dim = layers[0]
         self.fc = nn.ModuleList()
         for i in range(len(layers) - 1):
