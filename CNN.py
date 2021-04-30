@@ -5,10 +5,9 @@ import torch.nn.functional as F
 import torch.nn as nn
 
 class CNN(FCNN):
-    def __init__(self, layers, num_cnn_layers = 2, input_channels = 4):
+    def __init__(self, layers, num_cnn_layers = 2, input_channels = 9):
         super(CNN, self).__init__(layers)
 
-        self.sheel_var = 21
         self.convs = nn.ModuleList()
 
         dim = input_channels
@@ -16,7 +15,7 @@ class CNN(FCNN):
         for i in range(num_cnn_layers):
             self.convs.append(nn.Conv2d(dim, filters, kernel_size = 3, padding = 1))
             dim = filters
-        layers[0] = 10 * 10 * filters
+        layers[0] = 22 * 22 * filters
         self.dim = layers[0]
         self.fc = nn.ModuleList()
         for i in range(len(layers) - 1):
