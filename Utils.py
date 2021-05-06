@@ -186,3 +186,50 @@ class MappedQueue(object):
                 # Invariant is satisfied
                 break
         return pos
+
+class MappedFIFOQueue(object):
+
+    def __init__(self, data=[]):
+        """Priority queue class with updatable priorities.
+        """
+        self.h = list(data)
+        self.d = dict()
+
+    def __len__(self):
+        return len(self.h)
+
+    def __contains__(self, elt):
+        return elt in self.d
+
+    def __getitem__(self, item):
+        return item #self.h[self.d[item]]
+
+    def push(self, elt):
+        """Add an element to the queue."""
+        # If element is already in queue, do nothing
+        if elt in self.d:
+            return False
+        # Add element to heap and dict
+        pos = len(self.h)
+        self.h.append(elt)
+        self.d[elt] = pos
+        return True
+
+    def pop(self):
+        """Remove and return the smallest element in the queue."""
+        # Remove smallest element
+        elt = self.h[0]
+        del self.d[elt]
+        # If elt is last item, remove and return
+        return self.h.pop(0)
+
+    def remove(self, elt):
+        """Remove an element from the queue."""
+        # Find and remove element
+        try:
+            pos = self.d[elt]
+            self.h.remove(elt)
+        except KeyError:
+            # Not in queue
+            raise
+        return elt
