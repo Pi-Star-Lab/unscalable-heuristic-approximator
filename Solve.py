@@ -72,7 +72,7 @@ def readCommand(argv):
                       help='Which episode to resume from?')
     parser.add_option("--path", type="str", dest="path", default=None,
                       help='Path of Solver from where to resume?')
-    parser.add_option("--init_w", type="int", dest="init_w", default=0,
+    parser.add_option("--init_w", type="float", dest="init_w", default=0,
                       help='Inital weight of switching heurisitic (usually to be used with resume)')
     (options, args) = parser.parse_args(argv)
     return options
