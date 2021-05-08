@@ -5,6 +5,7 @@ import Utils
 from collections import deque
 from Solvers.A_Star import AStar
 from Solvers.Multiple_Sol_A_Star import MultipleAStar
+from Solvers.Multiple_Sol_IDA_Star import MultipleIDAStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
@@ -30,7 +31,7 @@ class DLMC(AbstractSolver):
 
     def __init__(self, problem=None, options=None):
         super(DLMC, self).__init__()
-        self.greedy_solver = MultipleAStar()
+        self.greedy_solver = MultipleIDAStar()
         self.greedy_solver.__init__(problem, options, return_expanded = True)
         self.w = 0
         self.counter = 0
