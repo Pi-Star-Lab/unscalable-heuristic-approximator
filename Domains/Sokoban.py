@@ -191,7 +191,6 @@ class Sokoban(AbstractState):
                                 if dist_to_goal < h_box:
                                     h_box = dist_to_goal
                     h += h_box
-
                 if self._boxes[i][j] == 1:
                     dist_to_man = abs(self._y_man - i) + abs(self._x_man - j) - 1
                     if dist_to_man < h_man:
