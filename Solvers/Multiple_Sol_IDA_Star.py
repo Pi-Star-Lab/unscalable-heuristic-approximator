@@ -7,7 +7,7 @@ import random
 
 class MultipleIDAStar(AbstractSolver):
     noise_decay = 0.97
-    update_buffer_size = 100
+    update_buffer_size = 20
 
     def __init__(self,problem=None,options=None, return_expanded = False):
         super(MultipleIDAStar,self).__init__()
@@ -43,13 +43,12 @@ class MultipleIDAStar(AbstractSolver):
         BOUND_MAX = 60000
         final_path = None
         to_update = {}
-        for bound in range(0, BOUND_MAX):
 
+        #bound = f(start)
+        for bound in range(int(start.get_f()), BOUND_MAX):
 
             open = MappedFIFOQueue()
-            closed = set()
             open.push(start)
-            best_cost = float('inf')
 
             while len(open) > 0:
 
@@ -57,7 +56,7 @@ class MultipleIDAStar(AbstractSolver):
                     break
 
                 current = open.pop()
-                pr = current.get_f()
+                #pr = current.get_f()
 
                 if current in to_update:
                     path = current.get_path()
@@ -69,13 +68,14 @@ class MultipleIDAStar(AbstractSolver):
                             to_update[x] = i + to_update[current] + 1
 
 
-                if pr >= best_cost:
+                if current.is_solution(): #  current is goal? remove best_cost var
 
-                    path = goal.get_path()
+                    print("Are we here yet?")
+                    path = current.get_path()
                     path.reverse()
                     if final_path is None:
-                        self.statistics[Statistics.Distance.value] = best_cost
-                        self.statistics[Statistics.Solution.value] = best_cost
+                        self.statistics[Statistics.Distance.value] = len(path)
+                        self.statistics[Statistics.Solution.value] = len(path)
                         final_path = path
 
                     for i, x in enumerate(path):
@@ -83,8 +83,6 @@ class MultipleIDAStar(AbstractSolver):
                             to_update[x] = min(to_update[x], i)
                         else:
                             to_update[x] = i
-
-                    best_cost = float("inf")
 
                 self.statistics[Statistics.Expanded.value] += 1
                 if expansion_bound is not None and self.statistics[Statistics.Expanded.value] > expansion_bound:
@@ -98,8 +96,8 @@ class MultipleIDAStar(AbstractSolver):
                 if successors:
                     for s in successors:
 
-
-                        if s in closed:
+                        path = s.get_path()
+                        if s in path[1:]:
                             continue
 
                         self.set_h(s, goal)
@@ -108,21 +106,10 @@ class MultipleIDAStar(AbstractSolver):
                         if prs > bound:
                             continue
 
-                        if s in open:
-                            if open[s].get_f() <= prs:
-                                continue
-                            else:
-                                open.remove(s)
-
-                        if s.is_solution() and s.g < best_cost:
-                            best_cost = s.g
-                            goal = s
-
                         s.parent = current
                         self.statistics[Statistics.Generated.value] += 1
                         open.push(s)
 
-                closed.add(current)
 
             if len(to_update) > MultipleIDAStar.update_buffer_size:
                 break
