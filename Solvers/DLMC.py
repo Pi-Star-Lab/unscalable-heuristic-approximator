@@ -57,16 +57,19 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = ResNN([input_dim] + layers + [1])
+        #model = ResNN([input_dim] + layers + [1])
+        model = FCNN([input_dim] + layers + [1])
 
         model.compile(lr=learning_rate)
         self.h = model
 
+        self.x = []
+        self.y = []
+        self.x_unique = {}
+
     def train(self, options):
         self.greedy_solver.h_func = None
 
-        self.x = None
-        self.y = None
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal_dummy(options.training_size).as_tensor()), options)
         self.save_path = options.save_path
@@ -126,20 +129,22 @@ class DLMC(AbstractSolver):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
     def remember(self, to_update):
-        self.x = []
-        self.y = []
         for x in to_update.keys():
-            self.x.append(x.as_tensor())
-            self.y.append(to_update[x])
-        self.x = np.array(self.x)
-        self.y = np.array(self.y)
+            print(x, to_update[x])
+            if x not in self.x_unique:
+                self.x_unique[x] = len(self.x)
+                self.x.append(x.as_tensor())
+                self.y.append(to_update[x])
+            else:
+                idx = self.x_unique[x]
+                self.y[idx] = min(self.y[idx], to_update[x])
 
     def replay(self):
         self.counter += 1
         if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
             self.save_weights_memory()
-        self.h.run_epoch(x=self.x, y=self.y, batch_size=DLMC.batch_size, verbose=1)
+        self.h.run_epoch(x=np.array(self.x), y=np.array(self.y), batch_size=DLMC.batch_size, verbose=1)
 
     def get_target_value(self, state, goal):
         """

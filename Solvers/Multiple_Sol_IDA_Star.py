@@ -7,7 +7,7 @@ import random
 
 class MultipleIDAStar(AbstractSolver):
     noise_decay = 0.97
-    update_buffer_size = 20
+    update_buffer_size = 30
 
     def __init__(self,problem=None,options=None, return_expanded = False):
         super(MultipleIDAStar,self).__init__()
@@ -44,8 +44,8 @@ class MultipleIDAStar(AbstractSolver):
         final_path = None
         to_update = {}
 
-        #bound = f(start)
         for bound in range(int(start.get_f()), BOUND_MAX):
+        #for bound in range(100, 101):
 
             open = MappedFIFOQueue()
             open.push(start)
@@ -56,7 +56,6 @@ class MultipleIDAStar(AbstractSolver):
                     break
 
                 current = open.pop()
-                #pr = current.get_f()
 
                 if current in to_update:
                     path = current.get_path()
@@ -70,8 +69,10 @@ class MultipleIDAStar(AbstractSolver):
 
                 if current.is_solution(): #  current is goal? remove best_cost var
 
-                    print("Are we here yet?")
                     path = current.get_path()
+                    for i, p in enumerate(path):
+                        print(i, p, end=" ")
+                    print(" ")
                     path.reverse()
                     if final_path is None:
                         self.statistics[Statistics.Distance.value] = len(path)
@@ -120,7 +121,6 @@ class MultipleIDAStar(AbstractSolver):
             return False, []
         else:
             return final_path, to_update
-
 
         return False
 

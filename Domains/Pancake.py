@@ -65,5 +65,9 @@ class Pancake(AbstractState):
         return Pancake(stack,0)
 
     @staticmethod
+    def get_goal(size):
+        return Pancake.get_goal_dummy(size)
+
+    @staticmethod
     def get_name():
         return "pancake"
