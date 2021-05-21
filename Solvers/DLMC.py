@@ -63,9 +63,9 @@ class DLMC(AbstractSolver):
         model.compile(lr=learning_rate)
         self.h = model
 
-        self.x = []
-        self.y = []
-        self.x_unique = {}
+        self.x = deque(maxlen=DLMC.buffer_size)
+        self.y = deque(maxlen=DLMC.buffer_size)
+        #self.x_unique = {}
 
     def train(self, options):
         self.greedy_solver.h_func = None
@@ -129,6 +129,8 @@ class DLMC(AbstractSolver):
         return max(self.target_predict(state, goal), state.get_h(goal))
 
     def remember(self, to_update):
+
+        """
         for x in to_update.keys():
             print(x, to_update[x])
             if x not in self.x_unique:
@@ -138,6 +140,10 @@ class DLMC(AbstractSolver):
             else:
                 idx = self.x_unique[x]
                 self.y[idx] = min(self.y[idx], to_update[x])
+        """
+        for x in to_update.keys():
+            self.x.append(x.as_tensor())
+            self.y.append(to_update[x])
 
     def replay(self):
         self.counter += 1

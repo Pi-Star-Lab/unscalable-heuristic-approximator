@@ -45,6 +45,7 @@ class MultipleIDAStar(AbstractSolver):
         to_update = {}
 
         for bound in range(int(start.get_f()), BOUND_MAX):
+        #for bound in range(0, BOUND_MAX):
         #for bound in range(100, 101):
 
             open = MappedFIFOQueue()
@@ -57,22 +58,26 @@ class MultipleIDAStar(AbstractSolver):
 
                 current = open.pop()
 
+                # Stopping creteria
                 if current in to_update:
                     path = current.get_path()
-                    path.reverse()
-                    for i, x in enumerate(path):
-                        if x in to_update:
-                            to_update[x] = min(to_update[x], i + to_update[current] + 1)
-                        else:
-                            to_update[x] = i + to_update[current] + 1
+                    g = len(path)
+                    if g + AbstractState.w * to_update[current] < bound: #Dr. Sharon's suggestion
+                    #if g + AbstractState.w * current.get_h(goal) < bound:
+                        path.reverse()
+                        for i, x in enumerate(path):
+                            if x in to_update:
+                                to_update[x] = min(to_update[x], i + to_update[current] + 1)
+                            else:
+                                to_update[x] = i + to_update[current] + 1
 
-
-                if current.is_solution(): #  current is goal? remove best_cost var
+                # Stopping creteria
+                if current.is_solution():
 
                     path = current.get_path()
-                    for i, p in enumerate(path):
-                        print(i, p, end=" ")
-                    print(" ")
+                    #for i, p in enumerate(path):
+                    #    print(i, p, end=" ")
+                    #print(" ")
                     path.reverse()
                     if final_path is None:
                         self.statistics[Statistics.Distance.value] = len(path)
@@ -96,7 +101,6 @@ class MultipleIDAStar(AbstractSolver):
 
                 if successors:
                     for s in successors:
-
                         path = s.get_path()
                         if s in path[1:]:
                             continue
