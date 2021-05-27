@@ -1,4 +1,4 @@
-from collections import deque
+from collections import deque, defaultdict
 import numpy as np
 import random
 import torch
@@ -80,3 +80,30 @@ class PrioritizedReplayBufferSearch(ReplayBufferSearch):
         idxes = list(np.array(idxes))
         x, y = np.array(self.buffer_x), np.array(self.buffer_target)
         return x[idxes], y[idxes]
+
+class DiscorReplayBufferSearch(ReplayBufferSearch):
+
+    def __init__(self, max_len):
+        """
+        :param max_len: Maximum length of buffer
+        """
+
+        super(DiscorReplayBufferSearch, self).__init__()
+        self.delta = defaultdict(int) #accmulated bellman error
+        self.gamma = 0.9
+
+    def sample(self, sample_size):
+        """
+        :param sample_size: Number of desired samples
+        """
+        x, y = ReplayBufferSearch.sample(sample_size)
+        predicted_values = self.predict_fn(np.array(self.buffer_x)).cpu()
+        for i in range(len(y)):
+            self.delta[x[i]] = np.abs(predicted_values[i] - y[i]) + self.gamma * self.delta[x[i]]
+
+    def set_predict_function(self, fn):
+        """
+        :param fn: Function to used to predict NN values
+        """
+        self.predict_fn = fn
+

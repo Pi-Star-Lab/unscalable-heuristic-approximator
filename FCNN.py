@@ -32,6 +32,34 @@ class balanced_data_loss(nn.Module):
         #print(max_w.item() / w)
         return torch.mean((max_w.item() / w.float()) * ((target[:, 0] - output[:, 0]) ** 2))
 
+class discor_loss(nn.Module):
+
+    def __init__(self, update_freq):
+        super(discor_loss, self).__init__()
+        self.delta = {}
+        self.gamma = 1
+        self.tau = 1
+        self.update_freq = update_freq
+
+    def forward(self, target, output, input):
+
+        with torch.no_grad():
+            diff = torch.mean(torch.abs(target[:, 0] - output[:, 0]))
+        weights = torch.zeros((len(input)))
+
+        for i in range(len(input)):
+            weights[i] = torch.exp(-self.gamma * self.delta(input[i]) / self.tau)
+
+        delta_mean = 0
+        for i in range(len(input)):
+            self.delta[input[i]] = diff[i] + self.gamma * self.delta[input[i]]
+            delta_mean += self.delta[input[i]]
+
+
+        delta_mean = delta_mean / len(input)
+        self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_man
+        return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
+
 class FCNN(nn.Module):
     def __init__(self, layers):
         super(FCNN, self).__init__()
