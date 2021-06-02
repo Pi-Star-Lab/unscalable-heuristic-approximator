@@ -7,7 +7,7 @@ from Solvers.A_Star import AStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
-from FCNN import FCNN
+from FCNN import FCNN, discor_loss
 from ResNN import ResNN
 from CNN import CNN
 from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
@@ -23,8 +23,8 @@ def weighted_loss(y_true, y_pred):
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
-    batch_size = int(2**14)
     sample_size = 10 ** 5
+    batch_size = sample_size # int(2**14)
     boostrap_update_size = 3 * buffer_size
 
     def __init__(self, problem=None, options=None):
@@ -61,8 +61,8 @@ class DLMC(AbstractSolver):
         target_model = ResNN([input_dim] + layers + [1])
 
         target_model.set_weights(model.get_weights())
-        #model.compile(loss='mse', optimizer=Adam(lr=learning_rate))
-        model.compile(lr=learning_rate)
+        model.compile(loss=discor_loss(update_freq=0.01), lr=learning_rate)
+        #model.compile(lr=learning_rate)
         self.h = model
 
         self.target_model = target_model
@@ -193,7 +193,8 @@ class DLMC(AbstractSolver):
                     if hand_crafted_h == 0:
                         min_vals.append(cost)
                     else:
-                        min_vals.append(cost +table[state])
+                        #min_vals.append(cost + max(table[state], hand_crafted_h))
+                        min_vals.append(cost + table[state])
                 #min_target = self.get_target_value(x, self.current_problem.goal)
                 if min_vals == []:
                     target_values[i] = 40 # some large number, because no neighbour, dead end!

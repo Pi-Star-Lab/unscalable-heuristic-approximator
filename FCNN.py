@@ -36,28 +36,63 @@ class discor_loss(nn.Module):
 
     def __init__(self, update_freq):
         super(discor_loss, self).__init__()
-        self.delta = {}
+        self.delta = defaultdict(int)
         self.gamma = 1
-        self.tau = 1
+        self.tau = 10
         self.update_freq = update_freq
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
+
+    def forward(self, target, output, input):
+
+        input = input.cpu()
+        with torch.no_grad():
+            diff = torch.abs(target[:, 0] - output[:, 0])
+        weights = torch.zeros((len(input)), device = self.device)
+
+        for i in range(len(input)):
+            input_tup = tuple(input[i].numpy())
+            #print(input_tup, input[i].shape)
+            weights[i] = math.exp(-self.gamma * self.delta[input_tup] / self.tau)
+
+        delta_mean = 0
+        for i in range(len(input)):
+            input_tup = tuple(input[i].numpy())
+            self.delta[input_tup] = diff[i] + self.gamma * self.delta[input_tup]
+            delta_mean += self.delta[input_tup]
+
+        delta_mean = delta_mean / len(input)
+        self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_mean
+        print(weights[:15])
+        #return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
+
+class discor_nn_loss(nn.Module):
+
+    def __init__(self, nn, update_freq = 0.01):
+        super(discor_loss, self).__init__()
+        self.delta = nn # make delta neural network
+        self.gamma = 1
+        self.tau = 10
+        self.update_freq = update_freq
+        self.device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
 
     def forward(self, target, output, input):
 
         with torch.no_grad():
-            diff = torch.mean(torch.abs(target[:, 0] - output[:, 0]))
-        weights = torch.zeros((len(input)))
-
-        for i in range(len(input)):
-            weights[i] = torch.exp(-self.gamma * self.delta(input[i]) / self.tau)
+            diff = torch.abs(target[:, 0] - output[:, 0])
+            deltas = self.delta.predict(input)
+            weights = torch.exp(-self.gamma * deltas / self.tau)
 
         delta_mean = 0
-        for i in range(len(input)):
-            self.delta[input[i]] = diff[i] + self.gamma * self.delta[input[i]]
-            delta_mean += self.delta[input[i]]
 
+        delta_target = diff + self.gamma * deltas
+        self.delta.run_epoch(input, delta_target)
 
-        delta_mean = delta_mean / len(input)
-        self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_man
+        delta_mean = torch.mean(self.delta.predict(input)) # want to approximate as original mean for speed up?
+
+        self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_mean
+        print(weights[:15])
+        #return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
         return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
 
 class FCNN(nn.Module):
@@ -80,9 +115,9 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss_fn = nn.MSELoss, optimizer = optim.Adam, lr=1e-3):
+    def compile(self, loss = nn.MSELoss(), optimizer = optim.Adam, lr=1e-3):
 
-        self.loss_fn = loss_fn()
+        self.loss_fn = loss
         self.optimizer = optimizer(self.parameters(), lr = lr)
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
         self.loss_fn.to(self.device)
@@ -105,12 +140,14 @@ class FCNN(nn.Module):
         if self.device is None:
             Exception("Make sure you compile the model first!")
 
-        x = torch.Tensor(x)
-        y = torch.unsqueeze(torch.Tensor(y), 1)
+        #x = torch.Tensor(x)
+        #y = torch.unsqueeze(torch.Tensor(y), 1)
         self.train()
         batch_size = min(x.shape[0], batch_size)
         n_batches = math.ceil(x.shape[0] / batch_size)
         running_loss = 0.
+        x = torch.Tensor(x)
+        y = torch.unsqueeze(torch.Tensor(y), 1)
         for i in range(n_batches):
             local_x, local_y = x[i*batch_size:(i+1)*batch_size,], \
                     y[i*batch_size:(i+1)*batch_size,]
@@ -119,7 +156,7 @@ class FCNN(nn.Module):
 
             self.optimizer.zero_grad()
             pred = self.forward(local_x)
-            loss = self.loss_fn(local_y, pred)
+            loss = self.loss_fn.forward(local_y, pred, local_x)
             loss.backward()
 
             self.optimizer.step()
