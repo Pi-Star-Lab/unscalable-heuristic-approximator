@@ -69,8 +69,9 @@ class discor_loss(nn.Module):
 class discor_nn_loss(nn.Module):
 
     def __init__(self, nn, update_freq = 0.01):
-        super(discor_loss, self).__init__()
+        super(discor_nn_loss, self).__init__()
         self.delta = nn # make delta neural network
+        delta = nn # make delta neural network
         self.gamma = 1
         self.tau = 10
         self.update_freq = update_freq
@@ -78,20 +79,23 @@ class discor_nn_loss(nn.Module):
 
     def forward(self, target, output, input):
 
+        #return torch.mean((target[:, 0] - output[:, 0]) ** 2)
         with torch.no_grad():
             diff = torch.abs(target[:, 0] - output[:, 0])
             deltas = self.delta.predict(input)
             weights = torch.exp(-self.gamma * deltas / self.tau)
-
+            delta_target = diff + self.gamma * deltas
+        
+        print(weights.requires_grad)
         delta_mean = 0
 
-        delta_target = diff + self.gamma * deltas
         self.delta.run_epoch(input, delta_target)
 
         delta_mean = torch.mean(self.delta.predict(input)) # want to approximate as original mean for speed up?
 
         self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_mean
-        print(weights[:15])
+        print("weights", weights[:15])
+        print("requirees grad",weights.requires_grad)
         #return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
         return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
 
@@ -102,6 +106,9 @@ class FCNN(nn.Module):
         self.fc = nn.ModuleList()
         for i in range(len(layers) - 1):
             self.fc.append(nn.Linear(layers[i], layers[i+1]))
+
+        self.params = nn.ModuleList()
+        self.params.append(self.fc)
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
@@ -115,11 +122,12 @@ class FCNN(nn.Module):
     def load_model(self, model_path):
         self.load_state_dict(torch.load(model_path))
 
-    def compile(self, loss = nn.MSELoss(), optimizer = optim.Adam, lr=1e-3):
+    def compile(self, loss = nn.MSELoss(), optimizer = optim.Adam, lr=1e-3, loss_input = False):
 
-        self.loss_fn = loss
         self.optimizer = optimizer(self.parameters(), lr = lr)
+        self.loss_fn = loss
         self.device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+        self.loss_input = loss_input
         self.loss_fn.to(self.device)
         self.to(self.device)
 
@@ -129,7 +137,9 @@ class FCNN(nn.Module):
         y = []
         with torch.no_grad():
             self.eval()
-            x = torch.Tensor(x)
+            
+            if not torch.is_tensor(x): 
+                x = torch.Tensor(x)
             for i in range(n_batches):
                 local_x = x[i * batch_size:(i+1)*batch_size,].to(self.device)
                 y.append(self.forward(local_x))
@@ -140,14 +150,14 @@ class FCNN(nn.Module):
         if self.device is None:
             Exception("Make sure you compile the model first!")
 
-        #x = torch.Tensor(x)
-        #y = torch.unsqueeze(torch.Tensor(y), 1)
         self.train()
         batch_size = min(x.shape[0], batch_size)
         n_batches = math.ceil(x.shape[0] / batch_size)
         running_loss = 0.
-        x = torch.Tensor(x)
-        y = torch.unsqueeze(torch.Tensor(y), 1)
+        
+        if not torch.is_tensor(x):
+            x = torch.Tensor(x)
+            y = torch.unsqueeze(torch.Tensor(y), 1)
         for i in range(n_batches):
             local_x, local_y = x[i*batch_size:(i+1)*batch_size,], \
                     y[i*batch_size:(i+1)*batch_size,]
@@ -156,7 +166,10 @@ class FCNN(nn.Module):
 
             self.optimizer.zero_grad()
             pred = self.forward(local_x)
-            loss = self.loss_fn.forward(local_y, pred, local_x)
+            if self.loss_input:
+                loss = self.loss_fn.forward(local_y, pred, local_x)
+            else:
+                loss = self.loss_fn.forward(local_y, pred)
             loss.backward()
 
             self.optimizer.step()
@@ -166,7 +179,7 @@ class FCNN(nn.Module):
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
 
     def set_weights(self, weights):
-        self.load_state_dict(weights)
+        self.params.load_state_dict(weights)
 
     def get_weights(self):
-        return self.state_dict()
+        return self.params.state_dict()

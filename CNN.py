@@ -21,6 +21,10 @@ class CNN(FCNN):
         for i in range(len(layers) - 1):
             self.fc.append(nn.Linear(layers[i], layers[i+1]))
 
+        self.params = nn.ModuleList()
+        self.params.append(self.fc)
+        self.params.append(self.convs)
+
     def forward(self, x):
 
         for i in range(len(self.convs)):

@@ -7,7 +7,7 @@ from Solvers.A_Star import AStar
 import copy
 from Domains.Problem_instance import ProblemInstance as prob
 from statistics import mean
-from FCNN import FCNN, discor_loss
+from FCNN import FCNN, discor_loss, discor_nn_loss
 from ResNN import ResNN
 from CNN import CNN
 from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
@@ -23,7 +23,7 @@ def weighted_loss(y_true, y_pred):
 # Deep Learning Greedy Monte-Carlo
 class DLMC(AbstractSolver):
     buffer_size = 20000 * 5
-    sample_size = 10 ** 5
+    sample_size = 10 ** 4
     batch_size = sample_size # int(2**14)
     boostrap_update_size = 3 * buffer_size
 
@@ -61,7 +61,10 @@ class DLMC(AbstractSolver):
         target_model = ResNN([input_dim] + layers + [1])
 
         target_model.set_weights(model.get_weights())
-        model.compile(loss=discor_loss(update_freq=0.01), lr=learning_rate)
+        nn = ResNN([input_dim] + layers + [1])
+        nn.compile()
+        model.compile(loss=discor_nn_loss(nn, update_freq = 0.01), lr=learning_rate, loss_input = True)
+        #model.compile(loss=discor_loss(update_freq = 0.01), lr=learning_rate, loss_input = True)
         #model.compile(lr=learning_rate)
         self.h = model
 
@@ -143,6 +146,7 @@ class DLMC(AbstractSolver):
         self.counter += 1
         if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
+            print(self.h.get_weights())
             self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()

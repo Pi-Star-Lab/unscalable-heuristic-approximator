@@ -23,6 +23,7 @@ class ResNN(FCNN):
         self.res_blocks = nn.ModuleList()
         for i in range(num_res_blocks):
             self.res_blocks.append(ResBlock(layers[-2]))
+        self.params.append(self.res_blocks)
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
