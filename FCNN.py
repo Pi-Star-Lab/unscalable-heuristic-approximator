@@ -51,7 +51,6 @@ class discor_loss(nn.Module):
 
         for i in range(len(input)):
             input_tup = tuple(input[i].numpy())
-            #print(input_tup, input[i].shape)
             weights[i] = math.exp(-self.gamma * self.delta[input_tup] / self.tau)
 
         delta_mean = 0
@@ -85,8 +84,7 @@ class discor_nn_loss(nn.Module):
             deltas = self.delta.predict(input)
             weights = torch.exp(-self.gamma * deltas / self.tau)
             delta_target = diff + self.gamma * deltas
-        
-        print(weights.requires_grad)
+
         delta_mean = 0
 
         self.delta.run_epoch(input, delta_target)
@@ -94,8 +92,7 @@ class discor_nn_loss(nn.Module):
         delta_mean = torch.mean(self.delta.predict(input)) # want to approximate as original mean for speed up?
 
         self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_mean
-        print("weights", weights[:15])
-        print("requirees grad",weights.requires_grad)
+        print("weights", weights[:15], weights.min(), weights.max())
         #return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
         return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
 
@@ -117,10 +114,10 @@ class FCNN(nn.Module):
         return x
 
     def save(self, model_path):
-        torch.save(self.state_dict(), model_path)
+        torch.save(self.params.state_dict(), model_path)
 
     def load_model(self, model_path):
-        self.load_state_dict(torch.load(model_path))
+        self.params.load_state_dict(torch.load(model_path))
 
     def compile(self, loss = nn.MSELoss(), optimizer = optim.Adam, lr=1e-3, loss_input = False):
 
@@ -137,8 +134,8 @@ class FCNN(nn.Module):
         y = []
         with torch.no_grad():
             self.eval()
-            
-            if not torch.is_tensor(x): 
+
+            if not torch.is_tensor(x):
                 x = torch.Tensor(x)
             for i in range(n_batches):
                 local_x = x[i * batch_size:(i+1)*batch_size,].to(self.device)
@@ -154,7 +151,7 @@ class FCNN(nn.Module):
         batch_size = min(x.shape[0], batch_size)
         n_batches = math.ceil(x.shape[0] / batch_size)
         running_loss = 0.
-        
+
         if not torch.is_tensor(x):
             x = torch.Tensor(x)
             y = torch.unsqueeze(torch.Tensor(y), 1)
