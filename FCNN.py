@@ -140,7 +140,7 @@ class FCNN(nn.Module):
             for i in range(n_batches):
                 local_x = x[i * batch_size:(i+1)*batch_size,].to(self.device)
                 y.append(self.forward(local_x))
-        return torch.cat(y)
+        return torch.cat(y).cpu()
 
     def run_epoch(self, x, y, batch_size = 1e10, verbose = 1):
 
@@ -154,7 +154,8 @@ class FCNN(nn.Module):
 
         if not torch.is_tensor(x):
             x = torch.Tensor(x)
-            y = torch.unsqueeze(torch.Tensor(y), 1)
+            #y = torch.unsqueeze(torch.Tensor(y), 1)
+            y = torch.LongTensor(y)
         for i in range(n_batches):
             local_x, local_y = x[i*batch_size:(i+1)*batch_size,], \
                     y[i*batch_size:(i+1)*batch_size,]
@@ -166,7 +167,8 @@ class FCNN(nn.Module):
             if self.loss_input:
                 loss = self.loss_fn.forward(local_y, pred, local_x)
             else:
-                loss = self.loss_fn.forward(local_y, pred)
+                print(pred.shape, local_y.shape)
+                loss = self.loss_fn.forward(pred, local_y)
             loss.backward()
 
             self.optimizer.step()

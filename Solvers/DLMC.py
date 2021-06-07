@@ -12,6 +12,7 @@ from ResNN import ResNN
 from CNN import CNN
 from buffers import ReplayBufferSearch, PrioritizedReplayBufferSearch
 
+import torch.nn as nn
 import logging
 
 import pickle
@@ -43,9 +44,6 @@ class DLMC(AbstractSolver):
             self.counter = options.resume if options.resume is not None else 0
             self.w = 0 if self.train else 1
 
-    def weighted_h(self, start, goal):
-        return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
-
     def init_h(self, input_dim, options):
         try:
             layers = Utils.parse_list(options.layers)
@@ -55,15 +53,15 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        #model = CNN([input_dim] + layers + [1])
-        #target_model = CNN([input_dim] + layers + [1])
-        model = ResNN([input_dim] + layers + [1])
-        target_model = ResNN([input_dim] + layers + [1])
+        model = CNN([input_dim] + layers + [30])
+        target_model = CNN([input_dim] + layers + [30])
+        #model = ResNN([input_dim] + layers + [20])
+        #target_model = ResNN([input_dim] + layers + [20])
 
         target_model.set_weights(model.get_weights())
-        nn = ResNN([input_dim] + layers + [1])
-        nn.compile()
-        model.compile(loss=discor_nn_loss(nn, update_freq = 0.01), lr=learning_rate, loss_input = True)
+        #neural_n = ResNN([input_dim] + layers + [1])
+        #neural_n.compile()
+        model.compile(loss=nn.CrossEntropyLoss(), lr=learning_rate)
         #model.compile(loss=discor_loss(update_freq = 0.01), lr=learning_rate, loss_input = True)
         #model.compile(lr=learning_rate)
         self.h = model
@@ -114,24 +112,24 @@ class DLMC(AbstractSolver):
             self.w = max(0, self.w - dw)
         self.greedy_solver.noise_std = self.greedy_solver.noise_std * AStar.noise_decay
 
+    def weighted_h(self, start, goal):
+        return self.w * self.get_h(start, goal) + (1 - self.w) * start.get_h(goal)
+
     def get_h(self, state, goal):
         if state.is_solution():
             return 0
-        h = np.asscalar(self.h.predict(self.reshape(state)))
+        h = np.argmax(self.h.predict(self.reshape(state))).item()
         return h
 
     def target_predict(self, state, goal):
         if state.is_solution():
             return 0
-        h = np.asscalar(self.target_model.predict(self.reshape(state)))
+        h = np.argmax(self.target_model.predict(self.reshape(state))).item()
         return h
 
     def target_weighted_predict(self, state, goal):
         return self.w * self.target_predict(state, goal) + \
                 (1 - self.w) * state.get_h(goal)
-
-    def target_bounded_predict(self, state, goal):
-        return max(self.target_predict(state, goal), state.get_h(goal))
 
     def remember(self, states):
         target_values = self.get_target_values(states)
@@ -146,7 +144,6 @@ class DLMC(AbstractSolver):
         self.counter += 1
         if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
-            print(self.h.get_weights())
             self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()
@@ -155,13 +152,6 @@ class DLMC(AbstractSolver):
         #self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
-
-    def get_target_value(self, state, goal):
-        """
-        Depricated
-        """
-        new_states = state.get_successors()
-        return min([self.target_bounded_predict(state, goal) for state in new_states])
 
     def get_target_values(self, nodes):
         target_values = np.zeros((len(nodes)))
@@ -181,7 +171,7 @@ class DLMC(AbstractSolver):
         return target_values
 
     def update_target_fn(self, nodes, X, target_values, start, end):
-        vals = self.h.predict(np.array([x.as_tensor() for x in X]))
+        vals = self.h.predict(np.array([x.as_tensor() for x in X])) #multiple get_h !! change this here if things go wrong
         table = dict(zip(X, vals))
         del X, vals
         for i in range(start, end):
@@ -197,8 +187,9 @@ class DLMC(AbstractSolver):
                     if hand_crafted_h == 0:
                         min_vals.append(cost)
                     else:
-                        #min_vals.append(cost + max(table[state], hand_crafted_h))
-                        min_vals.append(cost + table[state])
+                        val = np.argmax(table[state]).item()
+                        min_vals.append(cost + max(val, hand_crafted_h))
+                        #min_vals.append(cost + table[state])
                 #min_target = self.get_target_value(x, self.current_problem.goal)
                 if min_vals == []:
                     target_values[i] = 40 # some large number, because no neighbour, dead end!
