@@ -146,7 +146,6 @@ class DLMC(AbstractSolver):
         self.counter += 1
         if self.counter % self.update_target == 0:
             print("Updating Target Weights...")
-            print(self.h.get_weights())
             self.target_model.set_weights(self.h.get_weights())
 
             self.save_weights_memory()

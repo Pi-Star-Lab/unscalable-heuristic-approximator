@@ -80,9 +80,10 @@ class discor_nn_loss(nn.Module):
 
         #return torch.mean((target[:, 0] - output[:, 0]) ** 2)
         with torch.no_grad():
-            diff = torch.abs(target[:, 0] - output[:, 0])
+            diff = torch.abs(target[:, 0] - output[:, 0]).unsqueeze(1)
             deltas = self.delta.predict(input)
             weights = torch.exp(-self.gamma * deltas / self.tau)
+
             delta_target = diff + self.gamma * deltas
 
         delta_mean = 0
@@ -94,7 +95,7 @@ class discor_nn_loss(nn.Module):
         self.tau = (1 - self.update_freq) * self.tau + self.update_freq * delta_mean
         print("weights", weights[:15], weights.min(), weights.max())
         #return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean((target[:, 0] - output[:, 0]) ** 2)
 
 class FCNN(nn.Module):
     def __init__(self, layers):
