@@ -81,7 +81,8 @@ class Tile(AbstractState):
         Return the one-hot encoding of the tile puzzle
         return np.eye(len(self.board))[self.board].reshape(-1)
         """
-        return np.eye(len(self.board))[self.board].reshape(self.dim ** 2, self.dim, self.dim)
+        #return np.eye(len(self.board))[self.board].reshape(self.dim ** 2, self.dim, self.dim)
+        return np.eye(len(self.board))[self.board].reshape(-1)
 
     def is_solution(self):
 
