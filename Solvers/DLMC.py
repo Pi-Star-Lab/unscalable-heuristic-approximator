@@ -53,10 +53,10 @@ class DLMC(AbstractSolver):
             raise Exception('must specify hidden layers for deep network. e.g., "-l [10,32]"')
         learning_rate = options.learning_rate
         # Neural Net for h values
-        model = CNN([input_dim] + layers + [30])
-        target_model = CNN([input_dim] + layers + [30])
-        #model = ResNN([input_dim] + layers + [20])
-        #target_model = ResNN([input_dim] + layers + [20])
+        #model = CNN([input_dim] + layers + [100])
+        #target_model = CNN([input_dim] + layers + [100])
+        model = ResNN([input_dim] + layers + [100], num_res_blocks = 6)
+        target_model = ResNN([input_dim] + layers + [100], num_res_blocks = 6)
 
         target_model.set_weights(model.get_weights())
         #neural_n = ResNN([input_dim] + layers + [1])
@@ -70,7 +70,7 @@ class DLMC(AbstractSolver):
 
     def train(self, options):
         self.greedy_solver.h_func = None
-        self.buffer = ReplayBufferSearch(self.buffer_size)
+        self.buffer = PrioritizedReplayBufferSearch(self.buffer_size)
 
         cls = prob.get_domain_class(options.training_domain)
         self.init_h(len(cls.get_goal_dummy(options.training_size).as_tensor()), options)
@@ -149,7 +149,7 @@ class DLMC(AbstractSolver):
             self.save_weights_memory()
             target_values = self.get_target_values([m[0] for m in self.buffer.memory])
             self.buffer.update_target_buffer(target_values)
-        #self.buffer.set_predict_function(self.h.predict)
+        self.buffer.set_predict_function(self.h.predict)
         x, y = self.buffer.sample(self.sample_size)
         self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DLMC.batch_size, verbose=1)
 

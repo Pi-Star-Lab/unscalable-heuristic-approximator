@@ -73,10 +73,10 @@ class PrioritizedReplayBufferSearch(ReplayBufferSearch):
         :param sample_size: Number of desired samples
         """
         predicted_values = self.predict_fn(np.array(self.buffer_x)).cpu()
-        loss_fn = torch.nn.MSELoss(reduction = 'none')
-        bt = torch.Tensor(self.buffer_target).unsqueeze(1)
+        loss_fn = torch.nn.CrossEntropyLoss(reduction = 'none')
+        bt = torch.LongTensor(self.buffer_target)
         priorities = loss_fn(predicted_values, bt)
-        idxes = torch.multinomial(priorities.squeeze(1), sample_size, replacement=True)
+        idxes = torch.multinomial(priorities, sample_size, replacement=True)
         idxes = list(np.array(idxes))
         x, y = np.array(self.buffer_x), np.array(self.buffer_target)
         return x[idxes], y[idxes]
