@@ -61,11 +61,11 @@ class DLMC(AbstractSolver):
         target_model = ResNN([input_dim] + layers + [1])
 
         target_model.set_weights(model.get_weights())
-        nn = ResNN([input_dim] + layers + [1])
-        nn.compile()
-        model.compile(loss=discor_nn_loss(nn, update_freq = 0.01), lr=learning_rate, loss_input = True)
+        #nn = FCNN([input_dim] + layers + [1])
+        #nn.compile()
+        #model.compile(loss=discor_nn_loss(nn, update_freq = 0.01), lr=learning_rate, loss_input = True)
         #model.compile(loss=discor_loss(update_freq = 0.01), lr=learning_rate, loss_input = True)
-        #model.compile(lr=learning_rate)
+        model.compile(lr=learning_rate)
         self.h = model
 
         self.target_model = target_model
