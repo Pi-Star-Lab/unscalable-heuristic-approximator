@@ -26,8 +26,8 @@ class ResNN(FCNN):
         self.params.append(self.res_blocks)
 
         self.bottleneck = nn.ModuleList()
-        self.bottleneck.append(nn.Linear(layers[-2], 15))
-        self.bottleneck.append(nn.Linear(15, layers[-2]))
+        self.bottleneck.append(nn.Linear(layers[-2], 25))
+        self.bottleneck.append(nn.Linear(25, layers[-2]))
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
