@@ -3,8 +3,9 @@ from Solvers.DLRTA import DLRTA
 from Solvers.LRTA import LRTA
 from Solvers.DLMC import DLMC
 from Solvers.TMC import TMC
+from Solvers.DeepCubeA import DeepCubeA
 
-solvers = ['a', 'lrta', 'dlrta', 'dlmc', 'tmc']
+solvers = ['a', 'lrta', 'dlrta', 'dlmc', 'tmc', 'deepcubea']
 
 def get_solver_class(name):
     if name == solvers[0]:
@@ -17,5 +18,7 @@ def get_solver_class(name):
         return DLMC
     elif name == solvers[4]:
         return TMC
+    elif name == solvers[5]:
+        return DeepCubeA
     else:
         assert False, "unknown solver name as input. solver must be from " + str(solvers)
