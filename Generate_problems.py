@@ -34,7 +34,7 @@ if __name__ == '__main__':
     with open(os.path.join(outdir, options.outfile + '.txt'), 'w+') as out:
         for i in range(options.instances):
             p = prob()
-            p.generate_random(i, cls, cls.get_goal(options.size))
+            p.generate_random(i, cls, cls.get_goal_dummy(options.size))
             out.write(str(p)+'\n')
             print(p)
     print('{} instance of "{}" were created and stored at {}.txt'.format(options.instances,options.domain,
