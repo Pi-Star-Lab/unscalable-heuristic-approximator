@@ -22,10 +22,12 @@ def weighted_loss(y_true, y_pred):
 
 # Deep Learning Greedy Monte-Carlo
 class DeepCubeA(AbstractSolver):
-    buffer_size = 20000 * 5
+    buffer_size = 50000000
     sample_size = 10 ** 4
     batch_size = sample_size # int(2**14)
     boostrap_update_size = 3 * buffer_size
+    update_after = 50000000
+    targ_loss_threshold = 0.06
 
     def __init__(self, problem=None, options=None):
         super(DeepCubeA, self).__init__()
@@ -88,7 +90,7 @@ class DeepCubeA(AbstractSolver):
         self.greedy_solver.__init__(return_expanded = True)
         self.greedy_solver.h_func = self.weighted_h
 
-        num_steps = 20
+        num_steps = 20 # K from the nature paper
 
         state = problem.goal
         states = []
@@ -102,9 +104,12 @@ class DeepCubeA(AbstractSolver):
         if not self.train:
             return
 
-        # Update weight
         self.remember(states)
-        self.replay()
+
+        if len(self.buffer) == DeepCubeA.update_after:
+            print("replaying")
+            self.replay()
+            self.buffer.clear()
 
     def get_h(self, state, goal):
         if state.is_solution():
@@ -136,16 +141,17 @@ class DeepCubeA(AbstractSolver):
 
     def replay(self):
         self.counter += 1
-        if self.counter % self.update_target == 0:
+       #self.buffer.set_predict_function(self.h.predict)
+        x, y = self.buffer.sample(self.sample_size)
+        loss = self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DeepCubeA.batch_size, verbose=1)
+
+        if self.counter >= self.update_target and loss < DeepCubeA.targ_loss_threshold:
             print("Updating Target Weights...")
             self.target_model.set_weights(self.h.get_weights())
-
+            self.counter = 0 ##reset!
             self.save_weights_memory()
             target_values = self.get_target_values([m[0] for m in self.buffer.memory])
             self.buffer.update_target_buffer(target_values)
-        #self.buffer.set_predict_function(self.h.predict)
-        x, y = self.buffer.sample(self.sample_size)
-        self.h.run_epoch(x=np.array(x), y=np.array(y), batch_size=DeepCubeA.batch_size, verbose=1)
 
     def get_target_value(self, state, goal):
         """
@@ -184,17 +190,15 @@ class DeepCubeA(AbstractSolver):
                 cost = 1 # Hard code values! Consider storing costs in an array
                 min_vals = []
                 for state in x.get_successors():
-                    hand_crafted_h = state.get_h(self.current_problem.goal)
-                    if hand_crafted_h == 0:
+                    if state.is_solution(): # fix this !!!!!!!
                         min_vals.append(cost)
                     else:
                         #min_vals.append(cost + max(table[state], hand_crafted_h))
                         min_vals.append(cost + table[state])
                 #min_target = self.get_target_value(x, self.current_problem.goal)
-                if min_vals == []:
-                    target_values[i] = 40 # some large number, because no neighbour, dead end!
-                else:
-                    target_values[i] = min(min_vals)
+                if min_vals == []: # when does this happen !!!!!!!!
+                    raise AssertionError("Neighbour not found, are you stuck?", x)
+                target_values[i] = min(min_vals)
             i += 1
         return target_values
 

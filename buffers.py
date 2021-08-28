@@ -57,6 +57,12 @@ class ReplayBufferSearch(object):
     def update_target_buffer(self, target_values):
         self.buffer_target = deque(target_values, maxlen=self.len)
 
+    def clear():
+        self.buffer_x = deque(maxlen=self.len)
+        self.memory = deque(maxlen=self.len)
+        self.buffer_target = deque(maxlen=self.len) #just to save computational speed!
+
+
 class PrioritizedReplayBufferSearch(ReplayBufferSearch):
     """
     Priortized Replay Buffer for search-TD based problems
