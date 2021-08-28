@@ -102,15 +102,16 @@ class FCNN(nn.Module):
         super(FCNN, self).__init__()
         self.device = None
         self.fc = nn.ModuleList()
+        self.bns = nn.ModuleList()
         for i in range(len(layers) - 1):
             self.fc.append(nn.Linear(layers[i], layers[i+1]))
-
+            self.bns.append(nn.BatchNorm1d(layers[i+1]))
         self.params = nn.ModuleList()
         self.params.append(self.fc)
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
-            x = F.relu(self.fc[i](x))
+            x = F.relu(self.bns[i](self.fc[i](x)))
         x = self.fc[-1](x)
         return x
 

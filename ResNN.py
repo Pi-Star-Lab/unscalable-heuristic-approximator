@@ -8,13 +8,15 @@ class ResBlock(nn.Module):
     def __init__(self, block_size):
         super(ResBlock, self).__init__()
         self.layer_1 = nn.Linear(block_size, block_size)
+        self.bn1 = nn.BatchNorm1d(block_size)
         self.layer_2 = nn.Linear(block_size, block_size)
+        self.bn2 = nn.BatchNorm1d(block_size)
         self.relu = nn.ReLU(inplace = True)
 
     def forward(self, x):
         residual = x
-        x = self.relu(self.layer_1(x))
-        x = self.relu(self.layer_2(x) + residual)
+        x = self.relu(self.bn1(self.layer_1(x)))
+        x = self.relu(self.bn2(self.layer_2(x)) + residual)
         return x
 
 class ResNN(FCNN):
