@@ -111,6 +111,7 @@ class FCNN(nn.Module):
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
+            #x = F.tanh(self.bns[i](self.fc[i](x)))
             x = F.relu(self.bns[i](self.fc[i](x)))
         x = self.fc[-1](x)
         return x
@@ -142,7 +143,7 @@ class FCNN(nn.Module):
             for i in range(n_batches):
                 local_x = x[i * batch_size:(i+1)*batch_size,].to(self.device)
                 y.append(self.forward(local_x))
-        return torch.cat(y)
+        return torch.cat(y).squeeze(1).cpu().detach().numpy()
 
     def run_epoch(self, x, y, batch_size = 1e10, verbose = 1):
 
@@ -173,9 +174,11 @@ class FCNN(nn.Module):
 
             self.optimizer.step()
             running_loss += loss.item()
-
+        
+        running_loss /= n_batches
         if verbose == 1:
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
+        return running_loss
 
     def set_weights(self, weights):
         self.params.load_state_dict(weights)

@@ -52,7 +52,6 @@ class ProblemInstance:
 
     @staticmethod
     def get_domain_class(name):
-        print(name)
         if name == ProblemInstance.domains[0]:
             return Pancake
         elif name == ProblemInstance.domains[1]:

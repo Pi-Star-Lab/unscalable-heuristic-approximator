@@ -11,6 +11,7 @@ class AStar(AbstractSolver):
     def __init__(self,problem=None,options=None, return_expanded = False):
         super(AStar,self).__init__()
         self.return_expanded = return_expanded
+        self.noise_std = 0
         try:
             self.h_func
         except:
