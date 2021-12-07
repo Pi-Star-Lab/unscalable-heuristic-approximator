@@ -174,8 +174,10 @@ class FCNN(nn.Module):
             self.optimizer.step()
             running_loss += loss.item()
 
+        running_loss /= n_batches
         if verbose == 1:
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
+        return running_loss
 
     def set_weights(self, weights):
         self.params.load_state_dict(weights)

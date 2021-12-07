@@ -3,13 +3,14 @@ from Domains.Tile_puzzle import Tile
 from Domains.Rubiks_cube import Rubik
 from Domains.Sokoban import Sokoban
 from Domains.Witness import Witness
+from Domains.TSP import TSP
 
 class ProblemInstance:
 
     separator = '$'
     _random_steps = 998
     random_steps_domain = {'pancake' : 998,'rubik': 10,'tile': 998}
-    domains = ['pancake','rubik','tile', 'sokoban', 'witness']
+    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp']
 
     def __init__(self):
         self.index = -1
@@ -50,9 +51,21 @@ class ProblemInstance:
     def get_state_size(self):
         return len(self.start.as_tensor())
 
+    def random_walk(self, goal, cls, k):
+        self.cls = cls
+        self.goal = goal
+        start = goal
+        if self.cls == TSP:
+            self.start = TSP.get_random_problem_state(goal.num_nodes)
+            return
+        while start == goal:
+            for x in range(k):
+                start = start.random_step()
+        self.start = start
+
     @staticmethod
     def get_domain_class(name):
-        print(name)
+        #print(name)
         if name == ProblemInstance.domains[0]:
             return Pancake
         elif name == ProblemInstance.domains[1]:
@@ -63,5 +76,7 @@ class ProblemInstance:
             return Sokoban
         elif name == ProblemInstance.domains[4]:
             return Witness
+        elif name == ProblemInstance.domains[5]:
+            return TSP
         else:
-            assert False, "unknown domain name as input. domain must be from " + str(ProblemInstance.domains)
+            assert False, "unknown domain name as input. domain must be from " + str(ProblemInstance.domains) + " and " + name + " not found"
