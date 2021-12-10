@@ -154,7 +154,6 @@ class FCNN(nn.Module):
         batch_size = min(x.shape[0], batch_size)
         n_batches = math.ceil(x.shape[0] / batch_size)
         running_loss = 0.
-
         if not torch.is_tensor(x):
             x = torch.Tensor(x)
             y = torch.unsqueeze(torch.Tensor(y), 1)
@@ -163,6 +162,8 @@ class FCNN(nn.Module):
                     y[i*batch_size:(i+1)*batch_size,]
 
             local_x, local_y = local_x.to(self.device), local_y.to(self.device)
+            
+            sample_size = local_x.shape[0]
 
             self.optimizer.zero_grad()
             pred = self.forward(local_x)
@@ -173,8 +174,8 @@ class FCNN(nn.Module):
             loss.backward()
 
             self.optimizer.step()
-            running_loss += loss.item()
-        running_loss /= n_batches
+            running_loss += loss.item() * sample_size
+        running_loss /= x.shape[0] 
         if verbose == 1:
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
         return running_loss
