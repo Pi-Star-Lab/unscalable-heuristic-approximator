@@ -5,16 +5,25 @@ import os
 from Domains.Problem_instance import ProblemInstance as prob
 
 import numpy as np
+import math
 from ResNN import ResNN
 from FCNN import FCNN
 from Solvers.Abstract_Solver import Statistics
 from Solvers.A_Star import AStar
+import torch
 indir = "dataset/"
 
-LOSS_THRESHOLD = 0.15
+LOSS_THRESHOLD = 0.1
 MAX_EPOCHS = 300
 
-#import neural network
+class scaled_MSE_loss(torch.nn.Module):
+    def __init__(self):
+        super(scaled_MSE_loss, self).__init__()
+
+    def forward(self, target, output):
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+
 
 def readCommand(argv):
     parser = optparse.OptionParser(description = 'Create problem instances and store them to file in dir'
@@ -50,68 +59,8 @@ def parse_line(p, line):
 def mse(X, Y):
     return np.mean((X-Y) ** 2, axis = 0)
 
-def f1(options):
-    assert options.outfile and options.domain and options.max_size and options.min_size, "arguments must include: outfile, domain, " \
-                                                                "and problem size"
-    random.seed(options.seed)
-    cls = prob.get_domain_class(options.domain)
-    max_steps = 1000
-    MAX_EPOCHS = 1000
-    train_test_split = 0.8
-    #layers = [256]
-    breaking_point_logger = open("breaking_points_8.txt", "w")
-    print("[", end = " ",file=breaking_point_logger)
-    breaking_point_logger.flush()
-    breaking_point = []
-    try:
-        for neurons in range(4, 2**19, 16):
-            layers = [neurons]
-            for i in range(options.min_size, options.max_size + 1):
-                with open(os.path.join(indir, options.outfile + '_{}.txt'.format(i)), 'r') as problem_file:
-                    samples = 0
-                    X, Y = [], []
-                    input_dim = len(cls.get_goal_dummy(i).as_tensor())
-                    model = FCNN([input_dim] + layers + [1])
-                    model.compile(lr=9e-2)
-                    while samples < options.max_steps:
-                        p = prob()
-                        line = problem_file.readline()
-                        x, y = parse_line(p, line)
-                        X.append(x)
-                        Y.append(y)
-                        samples += 1
-
-                    X = np.array(X)
-                    Y = np.array(Y)
-
-                """
-                len_data = len(X)
-                slice_idx = int(train_test_split * len_data)
-                train_X = X[:slice_idx,:]
-                train_Y = Y[: slice_idx]
-                test_X = X[slice_idx:,:]
-                test_Y = Y[slice_idx:]
-                test_loss = float("inf")
-                """
-                epoch = 1
-                while training_loss > LOSS_THRESHOLD and epoch < MAX_EPOCHS:
-                    training_loss =  model.run_epoch(train_X, train_Y, batch_size=2000)
-                    #prediction_value = model.predict(test_X, batch_size = 1000).squeeze(1).cpu().numpy()
-                    #print(mse(test_Y, prediction_value))
-
-                    #test_loss = mse(test_Y, prediction_value)
-                    print("training loss:", training)
-                    #print("test loss:", test_loss)
-                    epoch += 1
-                    #print(epoch, "loss", loss)
-                if epoch == MAX_EPOCHS:
-                    breaking_point.append(i)
-                    print(i, ", ", end="", file=breaking_point_logger)
-                    breaking_point_logger.flush()
-                    break
-                print("Problem_Size: ", i,  "=" * 40 + "Epochs: ", epoch, "="  * 40)
-    except:
-        print(breaking_point)
+def scaled_mse(target, output):
+    return np.mean((1 / (target ** 2) + 1 / (output ** 2)) * (target-output) ** 2, axis = 0)
 
 class Tester:
     def __init__(self, options):
@@ -127,13 +76,14 @@ class Tester:
         self.saved_breaking_points = {} # neurons to problem size mapping
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
+        self.neuron_range = [2, 5000]
         #self.neuron_range = [600, 100000]
-        self.neuron_range = [2, 100000]
+        #self.neuron_range = [400, 1000000]
 
     def search(self, problem_size):
         keys = list(sorted(self.saved_breaking_points.keys()))
-        mini_idx, maxi_idx = keys[0], keys[-1]
-        print(self.saved_breaking_points, mini_idx, maxi_idx)
+        #mini_idx, maxi_idx = keys[0], keys[-1]
+        mini_idx, maxi_idx = self.neuron_range
         """
         Code below commented for experimental purposes
         TODO: uncomment it!
@@ -161,13 +111,18 @@ class Tester:
 
         print("=" * 40, neurons, "=" * 40, problem_size)
         layers = [neurons]
+
+        percent_factor = 0.2
+
         with open(os.path.join(indir, self.outfile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
             samples = 0
             X, Y = [], []
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
             model = FCNN([input_dim] + layers + [1])
+            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
             model.compile(lr=2e-3)
-            while samples < self.max_steps:
+            #while samples < self.max_steps:
+            while samples < (percent_factor / 100) * math.factorial(problem_size):
                 p = prob()
                 line = problem_file.readline()
                 x, y = parse_line(p, line)
@@ -209,6 +164,7 @@ if __name__ == '__main__':
     breaking_point = []
     # bad way to initalize!!!!!
 
+    """
     for i in range(options.min_size, options.max_size + 1):
         if t.fit(neurons = t.neuron_range[0], problem_size = i):
             t.saved_breaking_points[t.neuron_range[0]] = i
@@ -219,16 +175,13 @@ if __name__ == '__main__':
         if t.fit(neurons = t.neuron_range[1], problem_size = i):
             t.saved_breaking_points[t.neuron_range[1]] = i
             break
+    """
 
-
-    print("Here", t.saved_breaking_points)
     for i in range(options.min_size, options.max_size + 1):
             breaking_point.append(t.search(i))
             print(i, ", ", end="", file=t.breaking_point_logger)
             t.breaking_point_logger.flush()
             #print("Problem_Size: ", i,  "=" * 40 + "Epochs: ", epoch, "="  * 40)
             k = list(sorted(t.saved_breaking_points.keys()))
-    for x in k:
-        print(x, ":", t.saved_breaking_points[x], end= ", ")
-    print(" ")
 
+    print(breaking_point, list(range(options.min_size, options.max_size + 1)))
