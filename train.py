@@ -13,7 +13,7 @@ from Solvers.A_Star import AStar
 import torch
 indir = "dataset/"
 
-LOSS_THRESHOLD = 0.1
+LOSS_THRESHOLD = 0.001
 MAX_EPOCHS = 300
 
 class scaled_MSE_loss(torch.nn.Module):
@@ -21,8 +21,8 @@ class scaled_MSE_loss(torch.nn.Module):
         super(scaled_MSE_loss, self).__init__()
 
     def forward(self, target, output):
-        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        #return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
 
 
 def readCommand(argv):
@@ -84,18 +84,7 @@ class Tester:
         keys = list(sorted(self.saved_breaking_points.keys()))
         #mini_idx, maxi_idx = keys[0], keys[-1]
         mini_idx, maxi_idx = self.neuron_range
-        """
-        Code below commented for experimental purposes
-        TODO: uncomment it!
-        """
-        """
-        for x in keys:
-            if self.saved_breaking_points[x] >= problem_size:
-                maxi_idx = x
-                break
-            else:
-                mini_idx = 1
-        """
+
         while maxi_idx > mini_idx + 1:
             mid = (maxi_idx + mini_idx) // 2
             print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
@@ -119,10 +108,10 @@ class Tester:
             X, Y = [], []
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
             model = FCNN([input_dim] + layers + [1])
-            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
-            model.compile(lr=2e-3)
-            #while samples < self.max_steps:
-            while samples < (percent_factor / 100) * math.factorial(problem_size):
+            model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #model.compile(lr=2e-3)
+            while samples < self.max_steps:
+            #while samples < (percent_factor / 100) * math.factorial(problem_size):
                 p = prob()
                 line = problem_file.readline()
                 x, y = parse_line(p, line)
@@ -152,6 +141,7 @@ class Tester:
                 batch_size = 3000
             training_loss =  model.run_epoch(train_X, train_Y, batch_size=batch_size)
             prediction_value = model.predict(test_X, batch_size = batch_size)
+            print(prediction_value.min(), prediction_value.max())
             test_loss = mse(test_Y, prediction_value)
             epoch += 1
             print("Epoch where fit:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
