@@ -13,7 +13,7 @@ from Solvers.A_Star import AStar
 import torch
 indir = "dataset/"
 
-LOSS_THRESHOLD = 0.001
+LOSS_THRESHOLD = 0.1
 MAX_EPOCHS = 300
 
 class scaled_MSE_loss(torch.nn.Module):
@@ -77,10 +77,12 @@ class Tester:
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
         self.neuron_range = [2, 5000]
+        self.layer_range = [0, 8]
+        self.layer_size = 500
         #self.neuron_range = [600, 100000]
         #self.neuron_range = [400, 1000000]
 
-    def search(self, problem_size):
+    def search_width(self, problem_size):
         keys = list(sorted(self.saved_breaking_points.keys()))
         #mini_idx, maxi_idx = keys[0], keys[-1]
         mini_idx, maxi_idx = self.neuron_range
@@ -88,7 +90,15 @@ class Tester:
         while maxi_idx > mini_idx + 1:
             mid = (maxi_idx + mini_idx) // 2
             print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
-            does_fit = self.fit(problem_size, mid)
+
+            input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
+            model = FCNN([input_dim] + [mid] + [1], use_batchnorm=False)
+            model.compile(lr=2e-3)
+            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #percent_factor = 0.2
+            print("=" * 40, mid, "=" * 40, problem_size)
+            num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
+            does_fit = self.does_fit(problem_size, model, num_samples)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
@@ -96,22 +106,36 @@ class Tester:
                 mini_idx = mid
         return maxi_idx
 
-    def fit(self, problem_size, neurons):
+    def search_depth(self, problem_size):
+        keys = list(sorted(self.saved_breaking_points.keys()))
+        #mini_idx, maxi_idx = keys[0], keys[-1]
+        mini_idx, maxi_idx = self.layer_range
 
-        print("=" * 40, neurons, "=" * 40, problem_size)
-        layers = [neurons]
+        while maxi_idx > mini_idx + 1:
+            mid = (maxi_idx + mini_idx) // 2
+            print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
 
-        percent_factor = 0.2
+            input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
+            print([input_dim] + [self.layer_size] * mid + [1])
+            model = FCNN([input_dim] + [self.layer_size] * mid + [1], use_batchnorm=False)
+            model.compile(lr=2e-3)
+            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #percent_factor = 0.2
+            print("=" * 40, mid, "=" * 40, problem_size)
+            num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
+            does_fit = self.does_fit(problem_size, model, num_samples)
+            if does_fit:
+                maxi_idx = mid
+                self.saved_breaking_points[maxi_idx] = problem_size
+            else:
+                mini_idx = mid
+        return maxi_idx
 
+    def get_data(self, problem_size, num):
         with open(os.path.join(indir, self.outfile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
             samples = 0
             X, Y = [], []
-            input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
-            model = FCNN([input_dim] + layers + [1])
-            model.compile(lr=2e-3, loss = scaled_MSE_loss())
-            #model.compile(lr=2e-3)
-            while samples < self.max_steps:
-            #while samples < (percent_factor / 100) * math.factorial(problem_size):
+            while samples < num:
                 p = prob()
                 line = problem_file.readline()
                 x, y = parse_line(p, line)
@@ -122,6 +146,12 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
+        return X, Y
+
+
+    def does_fit(self, problem_size, model, num_samples):
+
+        X, Y = self.get_data(problem_size, num_samples)
         len_data = len(X)
 
         slice_idx = int(self.train_test_split * len_data)
@@ -135,10 +165,7 @@ class Tester:
         test_loss = float("inf")
         while training_loss > LOSS_THRESHOLD and epoch < MAX_EPOCHS:
 
-            if layers[0] > 2 ** 18:
-                batch_size = 200
-            else:
-                batch_size = 3000
+            batch_size = 3000
             training_loss =  model.run_epoch(train_X, train_Y, batch_size=batch_size)
             prediction_value = model.predict(test_X, batch_size = batch_size)
             print(prediction_value.min(), prediction_value.max())
@@ -152,23 +179,9 @@ if __name__ == '__main__':
     options = readCommand(sys.argv)
     t = Tester(options)
     breaking_point = []
-    # bad way to initalize!!!!!
-
-    """
-    for i in range(options.min_size, options.max_size + 1):
-        if t.fit(neurons = t.neuron_range[0], problem_size = i):
-            t.saved_breaking_points[t.neuron_range[0]] = i
-        else:
-            break
-
-    for i in range(options.max_size, options.min_size - 1, -1):
-        if t.fit(neurons = t.neuron_range[1], problem_size = i):
-            t.saved_breaking_points[t.neuron_range[1]] = i
-            break
-    """
 
     for i in range(options.min_size, options.max_size + 1):
-            breaking_point.append(t.search(i))
+            breaking_point.append(t.search_depth(i))
             print(i, ", ", end="", file=t.breaking_point_logger)
             t.breaking_point_logger.flush()
             #print("Problem_Size: ", i,  "=" * 40 + "Epochs: ", epoch, "="  * 40)
