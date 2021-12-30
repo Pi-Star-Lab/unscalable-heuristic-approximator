@@ -98,21 +98,25 @@ class discor_nn_loss(nn.Module):
         return torch.mean((target[:, 0] - output[:, 0]) ** 2)
 
 class FCNN(nn.Module):
-    def __init__(self, layers):
+    def __init__(self, layers, use_batchnorm=True):
         super(FCNN, self).__init__()
         self.device = None
         self.fc = nn.ModuleList()
-        self.bns = nn.ModuleList()
         for i in range(len(layers) - 1):
-            self.fc.append(nn.Linear(layers[i], layers[i+1]))
-            self.bns.append(nn.BatchNorm1d(layers[i+1]))
+            self.fc.append(nn.Linear(layers[i], layers[i+1], bias=False))
+        if use_batchnorm:
+            self.bns = nn.ModuleList()
+            for i in range(len(layers) - 1):
+                self.bns.append(nn.BatchNorm1d(layers[i+1]))
+        else:
+            self.bns = None
         self.params = nn.ModuleList()
         self.params.append(self.fc)
 
     def forward(self, x):
         for i in range(len(self.fc) - 1):
             #x = F.tanh(self.bns[i](self.fc[i](x)))
-            x = F.relu(self.bns[i](self.fc[i](x)))
+            x = F.relu(self.fc[i](x)) if self.bns is None else F.relu(self.bns[i](self.fc[i](x)))
         x = self.fc[-1](x)
         return x
 
@@ -162,7 +166,7 @@ class FCNN(nn.Module):
                     y[i*batch_size:(i+1)*batch_size,]
 
             local_x, local_y = local_x.to(self.device), local_y.to(self.device)
-            
+
             sample_size = local_x.shape[0]
 
             self.optimizer.zero_grad()
@@ -175,7 +179,7 @@ class FCNN(nn.Module):
 
             self.optimizer.step()
             running_loss += loss.item() * sample_size
-        running_loss /= x.shape[0] 
+        running_loss /= x.shape[0]
         if verbose == 1:
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
         return running_loss
