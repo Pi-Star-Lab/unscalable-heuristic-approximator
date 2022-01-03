@@ -8,6 +8,7 @@ import numpy as np
 import math
 from ResNN import ResNN
 from FCNN import FCNN
+from ResNN import ResNN
 from Solvers.Abstract_Solver import Statistics
 from Solvers.A_Star import AStar
 import torch
@@ -77,7 +78,7 @@ class Tester:
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
         self.neuron_range = [2, 5000]
-        self.layer_range = [0, 8]
+        self.layer_range = [0, 80]
         self.layer_size = 500
         #self.neuron_range = [600, 100000]
         #self.neuron_range = [400, 1000000]
@@ -92,7 +93,7 @@ class Tester:
             print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
 
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
-            model = FCNN([input_dim] + [mid] + [1], use_batchnorm=False)
+            model = FCNN([input_dim] + [mid] + [1], use_batch_norm=False)
             model.compile(lr=2e-3)
             #model.compile(lr=2e-3, loss = scaled_MSE_loss())
             #percent_factor = 0.2
@@ -110,18 +111,22 @@ class Tester:
         keys = list(sorted(self.saved_breaking_points.keys()))
         #mini_idx, maxi_idx = keys[0], keys[-1]
         mini_idx, maxi_idx = self.layer_range
-
+        layer_size = self.layer_size
+        layer_size = problem_size ** 2 + 3  ## TODO:extra addition here!
         while maxi_idx > mini_idx + 1:
             mid = (maxi_idx + mini_idx) // 2
             print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
 
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
-            print([input_dim] + [self.layer_size] * mid + [1])
-            model = FCNN([input_dim] + [self.layer_size] * mid + [1], use_batchnorm=False)
+            #model = FCNN([input_dim] + [layer_size] * mid + [1], use_batch_norm=True)
+            if mid % 2 == 0:
+                model = ResNN([input_dim] + [layer_size, layer_size, 1], (mid-1) // 2, use_batch_norm=False)
+            else:
+                model = ResNN([input_dim] + [layer_size, 1], (mid-1) // 2, use_batch_norm = False)
             model.compile(lr=2e-3)
             #model.compile(lr=2e-3, loss = scaled_MSE_loss())
-            #percent_factor = 0.2
-            print("=" * 40, mid, "=" * 40, problem_size)
+            percent_factor = 0.2
+            print("=" * 40, mid, "num layers", "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
             does_fit = self.does_fit(problem_size, model, num_samples)
             if does_fit:
@@ -168,10 +173,10 @@ class Tester:
             batch_size = 3000
             training_loss =  model.run_epoch(train_X, train_Y, batch_size=batch_size)
             prediction_value = model.predict(test_X, batch_size = batch_size)
-            print(prediction_value.min(), prediction_value.max())
+            print([prediction_value.min(), prediction_value.max()], [test_Y.min(), test_Y.max()])
             test_loss = mse(test_Y, prediction_value)
             epoch += 1
-            print("Epoch where fit:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
+            print("Epoch:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
         return False if epoch == MAX_EPOCHS else True
 
 

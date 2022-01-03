@@ -98,13 +98,13 @@ class discor_nn_loss(nn.Module):
         return torch.mean((target[:, 0] - output[:, 0]) ** 2)
 
 class FCNN(nn.Module):
-    def __init__(self, layers, use_batchnorm=True):
+    def __init__(self, layers, use_batch_norm=True):
         super(FCNN, self).__init__()
         self.device = None
         self.fc = nn.ModuleList()
         for i in range(len(layers) - 1):
             self.fc.append(nn.Linear(layers[i], layers[i+1], bias=False))
-        if use_batchnorm:
+        if use_batch_norm:
             self.bns = nn.ModuleList()
             for i in range(len(layers) - 1):
                 self.bns.append(nn.BatchNorm1d(layers[i+1]))
