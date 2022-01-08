@@ -5,13 +5,14 @@ from Domains.Sokoban import Sokoban
 from Domains.Witness import Witness
 from Domains.TSP import TSP
 from Domains.Rectangular_Tile_puzzle import RectangularTile
+from Domains.Blocks_World import BlocksWorld
 
 class ProblemInstance:
 
     separator = '$'
     _random_steps = 998
     random_steps_domain = {'pancake' : 998,'rubik': 10,'tile': 998, 'rtile': 998}
-    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp', 'rtile']
+    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp', 'rtile', 'blocks']
 
     def __init__(self):
         self.index = -1
@@ -80,5 +81,7 @@ class ProblemInstance:
             return TSP
         elif name == ProblemInstance.domains[6]:
             return RectangularTile
+        elif name == ProblemInstance.domains[7]:
+            return BlocksWorld
         else:
             assert False, "unknown domain name as input. domain must be from " + str(ProblemInstance.domains) + " and " + name + " not found"
