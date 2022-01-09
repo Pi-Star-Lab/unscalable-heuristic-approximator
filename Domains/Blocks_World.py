@@ -45,6 +45,7 @@ class BlocksWorld(AbstractState):
         return np.eye(len(self.table))[self.table].reshape(-1)
         """
         #return np.eye(len(self.table))[self.table].reshape(self.dim ** 2, self.dim, self.dim)
+        return np.array(self.table).reshape(-1)
         return np.eye(len(self.table))[self.table].reshape(-1)
 
     def is_solution(self):

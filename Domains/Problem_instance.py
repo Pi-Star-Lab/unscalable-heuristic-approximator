@@ -12,7 +12,7 @@ class ProblemInstance:
     separator = '$'
     _random_steps = 998
     random_steps_domain = {'pancake' : 998,'rubik': 10,'tile': 998, 'rtile': 998}
-    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp', 'rtile', 'blocks']
+    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp', 'rtile', 'blocksworld']
 
     def __init__(self):
         self.index = -1
