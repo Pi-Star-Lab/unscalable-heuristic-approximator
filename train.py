@@ -278,6 +278,7 @@ if __name__ == '__main__':
     breaking_point = []
     costs = []
     expansions = []
+    test_losses = []
     #### TODO: delete this block######
     #layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
     """
