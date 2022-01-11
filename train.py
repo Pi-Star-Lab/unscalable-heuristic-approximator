@@ -12,6 +12,7 @@ from ResNN import ResNN
 from Solvers.Abstract_Solver import Statistics
 from Solvers.A_Star import AStar
 import torch
+from sklearn.utils import shuffle
 indir = "dataset/"
 
 LOSS_THRESHOLD = 0.2
@@ -153,7 +154,7 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
-        return X, Y
+        return shuffle(X, Y)
 
 
     def does_fit(self, problem_size, model, num_samples):
