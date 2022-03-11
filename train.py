@@ -12,18 +12,28 @@ from ResNN import ResNN
 from Solvers.Abstract_Solver import Statistics
 from Solvers.A_Star import AStar
 import torch
+from sklearn.utils import shuffle
 indir = "dataset/"
 
-LOSS_THRESHOLD = 0.2
-MAX_EPOCHS = 300
+LOSS_THRESHOLD = 0.1
+MAX_EPOCHS = 500
 
 class scaled_MSE_loss(torch.nn.Module):
     def __init__(self):
         super(scaled_MSE_loss, self).__init__()
 
     def forward(self, target, output):
-        return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        #return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+
+class pth_norm_loss(torch.nn.Module):
+    def __init__(self):
+        super(pth_norm_loss, self).__init__()
+        self.p = 10
+
+    def forward(self, target, output):
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean((target[:, 0] - output[:, 0]) ** self.p)
 
 
 def readCommand(argv):
@@ -60,6 +70,14 @@ def parse_line(p, line):
 def mse(X, Y):
     return np.mean((X-Y) ** 2, axis = 0)
 
+def weighted_mse(labels,predicted):
+    idx, counts = np.unique(labels, return_counts=True)
+    mapping = np.zeros((idx.max()))
+    for i,index in enumerate(idx):
+        mapping[index] = counts[i]
+    weights = (len(labels) - mapping[labels]) / len(labels)
+    return np.mean(weights * (labels-predicted) ** 2, axis = 0)
+
 def scaled_mse(target, output):
     return np.mean((1 / (target ** 2) + 1 / (output ** 2)) * (target-output) ** 2, axis = 0)
 
@@ -82,6 +100,7 @@ class Tester:
         self.layer_size = 500
         #self.neuron_range = [600, 100000]
         #self.neuron_range = [400, 1000000]
+        self.last_test_loss = None
 
     def search_width(self, problem_size):
         keys = list(sorted(self.saved_breaking_points.keys()))
@@ -94,8 +113,8 @@ class Tester:
 
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
             model = FCNN([input_dim] + [mid] + [1], use_batch_norm=True)
-            model.compile(lr=2e-3)
-            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #model.compile(lr=2e-3)
+            model.compile(lr=2e-3, loss = scaled_MSE_loss())
             #percent_factor = 0.2
             print("=" * 40, mid, "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
@@ -124,8 +143,8 @@ class Tester:
                 model = ResNN([input_dim] + [layer_size, layer_size, 1], (mid-1) // 2, use_batch_norm=False)
             else:
                 model = ResNN([input_dim] + [layer_size, 1], (mid-1) // 2, use_batch_norm = False)
-            model.compile(lr=2e-3)
-            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #model.compile(lr=2e-3)
+            model.compile(lr=2e-3, loss = scaled_MSE_loss())
             percent_factor = 0.2
             print("=" * 40, mid, "num layers", "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
@@ -153,7 +172,7 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
-        return X, Y
+        return shuffle(X, Y)
 
 
     def does_fit(self, problem_size, model, num_samples):
@@ -177,6 +196,7 @@ class Tester:
             prediction_value = model.predict(test_X, batch_size = batch_size)
             print([prediction_value.min(), prediction_value.max()], [test_Y.min(), test_Y.max()])
             test_loss = mse(test_Y, prediction_value)
+            self.last_test_loss = test_loss
             epoch += 1
             print("Epoch:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
         return False if epoch == MAX_EPOCHS else True
@@ -188,6 +208,22 @@ class Tester:
         self.does_fit(problem_size, model, num_samples)
         return self.testset_results(model, problem_size, num_samples)
 
+    def get_test_width_results(self, num_layer, problem_size, num_samples):
+        input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
+        layer_size = problem_size ** 2 + 3  ## TODO:extra addition here!
+        mid = num_layer
+        if mid % 2 == 0:
+            model = ResNN([input_dim] + [layer_size, layer_size, 1], (mid-1) // 2, use_batch_norm=True)
+        else:
+            model = ResNN([input_dim] + [layer_size, 1], (mid-1) // 2, use_batch_norm = True)
+
+        model.compile(lr=2e-3)
+        for i in range(10):
+            if self.does_fit(problem_size, model, num_samples):
+                return self.last_test_loss
+        #return self.testset_results(model, problem_size, num_samples)
+        return False
+
     def testset_results(self, model, problem_size, num_samples):
         X, Y = self.get_data(problem_size, num_samples)
         len_data = len(X)
@@ -198,7 +234,7 @@ class Tester:
         train_Y = Y[: slice_idx]
         test_X = X[slice_idx:,:]
         test_Y = Y[slice_idx:]
-        batch_size = 10000
+        batch_size = 3000
         prediction_value = model.predict(test_X, batch_size = batch_size)
         test_loss = mse(test_Y, prediction_value)
         return test_loss
@@ -281,6 +317,18 @@ if __name__ == '__main__':
     test_losses = []
     #### TODO: delete this block######
     #layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
+    layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
+    layer_sizes, problem_sizes = [1, 2, 4, 4, 5, 12, 13, 11, 9, 7, 4], [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
+    test_set_results = []
+    import sys
+    for i in range(len(layer_sizes)):
+        test_set_results.append(t.get_test_width_results(layer_sizes[i], problem_sizes[i], t.max_steps))
+        if not test_set_results[-1]:
+            print("ERRRROROOROR")
+            sys.exit(1)
+        print("=" * 150)
+    print(test_set_results, problem_sizes)
+    sys.exit(0)
     """
     layer_sizes = [2, 4, 6, 12, 24, 51, 150, 441, 742, 931, 1002, 889, 789, 688]
     problem_sizes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
@@ -291,8 +339,6 @@ if __name__ == '__main__':
     print("STD EXPANSION:", std_expansions)
     print("Problem Size :", problem_sizes)
     print("Layer Size   :", layer_sizes)
-    import sys
-    sys.exit(0)
     """
     ##################################
 
