@@ -16,7 +16,7 @@ from sklearn.utils import shuffle
 indir = "dataset/"
 
 LOSS_THRESHOLD = 0.1
-MAX_EPOCHS = 500
+MAX_EPOCHS = 300
 
 class scaled_MSE_loss(torch.nn.Module):
     def __init__(self):
@@ -34,6 +34,32 @@ class pth_norm_loss(torch.nn.Module):
     def forward(self, target, output):
         #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
         return torch.mean((target[:, 0] - output[:, 0]) ** self.p)
+
+class weighted_MSE_loss(torch.nn.Module):
+    def __init__(self):
+        super(weighted_MSE_loss, self).__init__()
+
+    def forward(self, target, output, weights):
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
+
+class SE_loss(torch.nn.Module):
+    def __init__(self):
+        super(SE_loss, self).__init__()
+
+    def forward(self, target, output):
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        return torch.sum((target[:, 0] - output[:, 0]) ** 2)
+
+class sigmod_based_MSE_loss(torch.nn.Module):
+    def __init__(self):
+        super(sigmod_based_MSE_loss, self).__init__()
+
+    def forward(self, target, output):
+        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
+        se = (target[:, 0] - output[:, 0]) ** 2
+        epsilon2 = 1
+        return torch.mean(torch.sigmoid(((4 * se) / epsilon2) - 1) * se)
 
 
 def readCommand(argv):
@@ -95,7 +121,7 @@ class Tester:
         self.saved_breaking_points = {} # neurons to problem size mapping
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
-        self.neuron_range = [2, 2000]
+        self.neuron_range = [2, 48000]
         self.layer_range = [0, 160]
         self.layer_size = 500
         #self.neuron_range = [600, 100000]
@@ -114,11 +140,12 @@ class Tester:
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
             model = FCNN([input_dim] + [mid] + [1], use_batch_norm=True)
             #model.compile(lr=2e-3)
-            model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
+            model.compile(lr=2e-3, loss = sigmod_based_MSE_loss())
             #percent_factor = 0.2
             print("=" * 40, mid, "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
-            does_fit = self.does_fit(problem_size, model, num_samples)
+            does_fit = self.does_fit_2(problem_size, model, num_samples, 0.5)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
@@ -148,7 +175,7 @@ class Tester:
             percent_factor = 0.2
             print("=" * 40, mid, "num layers", "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
-            does_fit = self.does_fit(problem_size, model, num_samples)
+            does_fit = self.does_fit_2(problem_size, model, num_samples, 0.5)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
@@ -172,12 +199,10 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
-        return shuffle(X, Y)
+        #return shuffle(X, Y)
+        return X, Y
 
-
-    def does_fit(self, problem_size, model, num_samples):
-
-        X, Y = self.get_data(problem_size, num_samples)
+    def split_data(self, X, Y):
         len_data = len(X)
 
         slice_idx = int(self.train_test_split * len_data)
@@ -186,13 +211,20 @@ class Tester:
         train_Y = Y[: slice_idx]
         test_X = X[slice_idx:,:]
         test_Y = Y[slice_idx:]
+        return train_X, train_Y, test_X, test_Y
+
+    def does_fit(self, problem_size, model, num_samples):
+
+        X, Y = self.get_data(problem_size, num_samples)
+
+        train_X, train_Y, test_X, test_Y = self.split_data(X, Y)
         epoch = 1
         training_loss = float("inf")
         test_loss = float("inf")
         while training_loss > LOSS_THRESHOLD and epoch < MAX_EPOCHS:
 
             batch_size = 10000
-            training_loss =  model.run_epoch(train_X, train_Y, batch_size=batch_size)
+            training_loss =  model.run_epoch(train_X, train_Y, batch_size=batch_size, verbose=0)
             prediction_value = model.predict(test_X, batch_size = batch_size)
             print([prediction_value.min(), prediction_value.max()], [test_Y.min(), test_Y.max()])
             test_loss = mse(test_Y, prediction_value)
@@ -200,6 +232,42 @@ class Tester:
             epoch += 1
             print("Epoch:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
         return False if epoch == MAX_EPOCHS else True
+
+    def does_fit_2(self, problem_size, model, num_samples, threshold):
+        """
+        threshold = \epsilon / 2
+        """
+
+        X, Y = self.get_data(problem_size, num_samples)
+
+        train_X, train_Y, test_X, test_Y = self.split_data(X, Y)
+        epoch = 1
+        training_loss = float("inf")
+        test_loss = float("inf")
+        mis_classified = float('inf')
+        #while training_loss > 0 and epoch < MAX_EPOCHS:
+        while mis_classified > 0 and epoch < MAX_EPOCHS:
+
+            batch_size = 10000
+            predict_trainset = model.predict(train_X, batch_size = batch_size)
+            #print(train_X.shape, predict_trainset.shape)
+            incorrect_idxs = np.abs(predict_trainset - train_Y) >= threshold
+            #weights = incorrect_idxs.astype('float64')
+            #incorrect_train_X, incorrect_train_Y = train_X[incorrect_idxs], train_Y[incorrect_idxs]
+            #weights[weights < 0.01] = 0.1
+            #weights = torch.Tensor(weights)
+            #print(sum(weights), model.loss_fn.weights.shape, model.loss_fn.weights.min(), model.loss_fn.weights.max())
+            #training_loss = model.run_epoch_weighted(train_X, train_Y, weights, batch_size=batch_size)
+            training_loss = model.run_epoch(train_X, train_Y, batch_size=batch_size)
+            prediction_value = model.predict(test_X, batch_size = batch_size)
+            mis_classified = sum(incorrect_idxs)
+            print(mis_classified, [prediction_value.min(), prediction_value.max()], [test_Y.min(), test_Y.max()])
+            test_loss = mse(test_Y, prediction_value)
+            self.last_test_loss = test_loss
+            epoch += 1
+            print("Epoch:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
+        return False if epoch == MAX_EPOCHS else True
+
 
     def get_test_results(self, layer_size, problem_size, num_samples):
         input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
@@ -316,6 +384,7 @@ if __name__ == '__main__':
     expansions = []
     test_losses = []
     #### TODO: delete this block######
+    """
     #layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
     layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
     layer_sizes, problem_sizes = [1, 2, 4, 4, 5, 12, 13, 11, 9, 7, 4], [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
@@ -329,7 +398,6 @@ if __name__ == '__main__':
         print("=" * 150)
     print(test_set_results, problem_sizes)
     sys.exit(0)
-    """
     layer_sizes = [2, 4, 6, 12, 24, 51, 150, 441, 742, 931, 1002, 889, 789, 688]
     problem_sizes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
     avg_cost, std_cost, avg_expansions, std_expansions = get_test_losses(t, layer_sizes, problem_sizes)

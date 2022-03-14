@@ -184,6 +184,37 @@ class FCNN(nn.Module):
             print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
         return running_loss
 
+    def run_epoch_weighted(self, x, y, weights, batch_size = 1e10, verbose = 1):
+
+        if self.device is None:
+            Exception("Make sure you compile the model first!")
+
+        self.train()
+        batch_size = min(x.shape[0], batch_size)
+        n_batches = math.ceil(x.shape[0] / batch_size)
+        running_loss = 0.
+        if not torch.is_tensor(x):
+            x = torch.Tensor(x)
+            y = torch.unsqueeze(torch.Tensor(y), 1)
+        for i in range(n_batches):
+            local_x, local_y, local_weight = x[i*batch_size:(i+1)*batch_size,], \
+                    y[i*batch_size:(i+1)*batch_size,], weights[i*batch_size:(i+1)*batch_size,]
+
+            local_x, local_y, local_weight = local_x.to(self.device), local_y.to(self.device), local_weight.to(self.device)
+
+            sample_size = local_x.shape[0]
+
+            self.optimizer.zero_grad()
+            pred = self.forward(local_x)
+            loss = self.loss_fn.forward(local_y, pred, local_weight)
+            loss.backward()
+
+            self.optimizer.step()
+            running_loss += loss.item() * sample_size
+        running_loss /= x.shape[0]
+        if verbose == 1:
+            print("Samples used: {} Epoch Loss:{}".format(x.shape[0], running_loss))
+        return running_loss
     def set_weights(self, weights):
         self.params.load_state_dict(weights)
 
