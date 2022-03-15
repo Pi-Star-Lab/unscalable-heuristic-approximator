@@ -16,7 +16,8 @@ from sklearn.utils import shuffle
 indir = "dataset/"
 
 LOSS_THRESHOLD = 0.1
-MAX_EPOCHS = 300
+EPSILON = 0.1
+MAX_EPOCHS = 3000
 
 class scaled_MSE_loss(torch.nn.Module):
     def __init__(self):
@@ -58,8 +59,9 @@ class sigmod_based_MSE_loss(torch.nn.Module):
     def forward(self, target, output):
         #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
         se = (target[:, 0] - output[:, 0]) ** 2
-        epsilon2 = 1
-        return torch.mean(torch.sigmoid(((4 * se) / epsilon2) - 1) * se)
+        epsilon2 = EPSILON ** 2
+        b = 10 ### minus b from desmos
+        return torch.mean(torch.sigmoid(b * (((4 * se) / epsilon2) - 1)) * se)
 
 
 def readCommand(argv):
@@ -121,7 +123,7 @@ class Tester:
         self.saved_breaking_points = {} # neurons to problem size mapping
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
-        self.neuron_range = [2, 48000]
+        self.neuron_range = [2, 4000]
         self.layer_range = [0, 160]
         self.layer_size = 500
         #self.neuron_range = [600, 100000]
@@ -138,14 +140,14 @@ class Tester:
             print(mini_idx, mid, maxi_idx, self.saved_breaking_points)
 
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
-            model = FCNN([input_dim] + [mid] + [1], use_batch_norm=True)
-            #model.compile(lr=2e-3)
+            model = FCNN([input_dim] + [mid] + [1])
+            model.compile(lr=2e-3)
             #model.compile(lr=2e-3, loss = scaled_MSE_loss())
-            model.compile(lr=2e-3, loss = sigmod_based_MSE_loss())
+            #model.compile(lr=6e-3, loss = sigmod_based_MSE_loss())
             #percent_factor = 0.2
             print("=" * 40, mid, "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
-            does_fit = self.does_fit_2(problem_size, model, num_samples, 0.5)
+            does_fit = self.does_fit_2(problem_size, model, num_samples, EPSILON / 2)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
@@ -199,8 +201,10 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
-        #return shuffle(X, Y)
-        return X, Y
+        if "tsp" in self.outfile:
+            print("TSP troubles")
+            Y = Y / 10
+        return shuffle(X, Y)
 
     def split_data(self, X, Y):
         len_data = len(X)
@@ -252,6 +256,7 @@ class Tester:
             predict_trainset = model.predict(train_X, batch_size = batch_size)
             #print(train_X.shape, predict_trainset.shape)
             incorrect_idxs = np.abs(predict_trainset - train_Y) >= threshold
+            print([predict_trainset.min(), train_Y.min()])
             #weights = incorrect_idxs.astype('float64')
             #incorrect_train_X, incorrect_train_Y = train_X[incorrect_idxs], train_Y[incorrect_idxs]
             #weights[weights < 0.01] = 0.1
@@ -262,7 +267,10 @@ class Tester:
             prediction_value = model.predict(test_X, batch_size = batch_size)
             mis_classified = sum(incorrect_idxs)
             print(mis_classified, [prediction_value.min(), prediction_value.max()], [test_Y.min(), test_Y.max()])
-            test_loss = mse(test_Y, prediction_value)
+            print([predict_trainset.min(), train_Y.min()])
+            incorrect_idxs = np.abs(prediction_value - test_Y) >= threshold
+            test_loss = sum(incorrect_idxs)
+            #test_loss = mse(test_Y, prediction_value)
             self.last_test_loss = test_loss
             epoch += 1
             print("Epoch:", epoch, "Training loss:", training_loss, "Test Loss:", test_loss)
@@ -412,7 +420,8 @@ if __name__ == '__main__':
 
     for i in range(options.min_size, options.max_size + 1):
             breaking_point.append(t.search_width(i))
-            test_losses.append(t.testset_results(t.model, i, t.max_steps))
+            #test_losses.append(t.testset_results(t.model, i, t.max_steps))
+            test_losses.append(t.last_test_loss)
             print(i, ", ", end="", file=t.breaking_point_logger)
             t.breaking_point_logger.flush()
             #print("Problem_Size: ", i,  "=" * 40 + "Epochs: ", epoch, "="  * 40)
