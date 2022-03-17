@@ -15,9 +15,9 @@ import torch
 from sklearn.utils import shuffle
 indir = "dataset/"
 
-LOSS_THRESHOLD = 0.1
+LOSS_THRESHOLD = 0.2
 EPSILON = 0.1
-MAX_EPOCHS = 3000
+MAX_EPOCHS = 300
 
 class scaled_MSE_loss(torch.nn.Module):
     def __init__(self):
@@ -124,7 +124,7 @@ class Tester:
         self.outfile = options.outfile
         #self.neuron_range = [2, 800000]
         self.neuron_range = [2, 4000]
-        self.layer_range = [0, 160]
+        self.layer_range = [0, 16]
         self.layer_size = 500
         #self.neuron_range = [600, 100000]
         #self.neuron_range = [400, 1000000]
@@ -169,15 +169,15 @@ class Tester:
             input_dim = len(self.cls.get_goal_dummy(problem_size).as_tensor())
             #model = FCNN([input_dim] + [layer_size] * mid + [1], use_batch_norm=True)
             if mid % 2 == 0:
-                model = ResNN([input_dim] + [layer_size, layer_size, 1], (mid-1) // 2, use_batch_norm=False)
+                model = ResNN([input_dim] + [layer_size, layer_size, 1], (mid-1) // 2, use_batch_norm=True)
             else:
-                model = ResNN([input_dim] + [layer_size, 1], (mid-1) // 2, use_batch_norm = False)
-            #model.compile(lr=2e-3)
-            model.compile(lr=2e-3, loss = scaled_MSE_loss())
+                model = ResNN([input_dim] + [layer_size, 1], (mid-1) // 2, use_batch_norm = True)
+            model.compile(lr=2e-3)
+            #model.compile(lr=2e-3, loss = scaled_MSE_loss())
             percent_factor = 0.2
             print("=" * 40, mid, "num layers", "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
-            does_fit = self.does_fit_2(problem_size, model, num_samples, 0.5)
+            does_fit = self.does_fit(problem_size, model, num_samples)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
@@ -419,7 +419,7 @@ if __name__ == '__main__':
     ##################################
 
     for i in range(options.min_size, options.max_size + 1):
-            breaking_point.append(t.search_width(i))
+            breaking_point.append(t.search_depth(i))
             #test_losses.append(t.testset_results(t.model, i, t.max_steps))
             test_losses.append(t.last_test_loss)
             print(i, ", ", end="", file=t.breaking_point_logger)
