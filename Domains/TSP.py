@@ -61,7 +61,7 @@ class TSP(AbstractState):
         visited = [True if list_conversion[x] == -1 else False for x in range(idx, -1)]
         #print(len(list_conversion) + idx, list_conversion[len(list_conversion) + idx])
         num_nodes = int(np.sqrt(len(list_conversion) + idx))
-        graph = np.array(list_conversion[:idx]).reshape(num_nodes, num_nodes) / 10
+        graph = np.array(list_conversion[:idx]).reshape(num_nodes, num_nodes)
         return TSP(graph, start_node, 0, visited)
 
 
