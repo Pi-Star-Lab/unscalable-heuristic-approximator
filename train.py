@@ -356,40 +356,11 @@ if __name__ == '__main__':
     costs = []
     expansions = []
     test_losses = []
-    #### TODO: delete this block######
-    """
-    #layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
-    layer_sizes = [2, 5, 10, 29, 117, 672, 2191, 2709, 2636, 2504, 2243, 2064, 1862, 1670]
-    layer_sizes, problem_sizes = [1, 2, 4, 4, 5, 12, 13, 11, 9, 7, 4], [7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    test_set_results = []
-    import sys
-    for i in range(len(layer_sizes)):
-        test_set_results.append(t.get_test_width_results(layer_sizes[i], problem_sizes[i], t.max_steps))
-        if not test_set_results[-1]:
-            print("ERRRROROOROR")
-            sys.exit(1)
-        print("=" * 150)
-    print(test_set_results, problem_sizes)
-    sys.exit(0)
-    layer_sizes = [2, 4, 6, 12, 24, 51, 150, 441, 742, 931, 1002, 889, 789, 688]
-    problem_sizes = [4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17]
-    avg_cost, std_cost, avg_expansions, std_expansions = get_test_losses(t, layer_sizes, problem_sizes)
-    print("AVG COST     :", avg_cost)
-    print("AVG EXPANSION:", avg_expansions)
-    print("STD COST     :", std_cost)
-    print("STD EXPANSION:", std_expansions)
-    print("Problem Size :", problem_sizes)
-    print("Layer Size   :", layer_sizes)
-    """
-    ##################################
-
     for i in range(options.min_size, options.max_size + 1):
             breaking_point.append(t.search_width(i))
-            #test_losses.append(t.testset_results(t.model, i, t.max_steps))
             test_losses.append(t.last_test_loss)
             print(i, ", ", end="", file=t.breaking_point_logger)
             t.breaking_point_logger.flush()
-            #print("Problem_Size: ", i,  "=" * 40 + "Epochs: ", epoch, "="  * 40)
             k = list(sorted(t.saved_breaking_points.keys()))
 
     print(breaking_point, list(range(options.min_size, options.max_size + 1)), test_losses)
