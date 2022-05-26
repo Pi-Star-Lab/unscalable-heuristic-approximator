@@ -1,18 +1,13 @@
 from Domains.Pancake import Pancake
-from Domains.Tile_puzzle import Tile
-from Domains.Rubiks_cube import Rubik
-from Domains.Sokoban import Sokoban
-from Domains.Witness import Witness
 from Domains.TSP import TSP
-from Domains.Rectangular_Tile_puzzle import RectangularTile
 from Domains.Blocks_World import BlocksWorld
 
 class ProblemInstance:
 
     separator = '$'
     _random_steps = 998
-    random_steps_domain = {'pancake' : 998,'rubik': 10,'tile': 998, 'rtile': 998}
-    domains = ['pancake','rubik','tile', 'sokoban', 'witness', 'tsp', 'rtile', 'blocksworld']
+    random_steps_domain = {'pancake' : 998}
+    domains = ['pancake','tsp','blocksworld']
 
     def __init__(self):
         self.index = -1
@@ -70,18 +65,8 @@ class ProblemInstance:
         if name == ProblemInstance.domains[0]:
             return Pancake
         elif name == ProblemInstance.domains[1]:
-            return Rubik
-        elif name == ProblemInstance.domains[2]:
-            return Tile
-        elif name == ProblemInstance.domains[3]:
-            return Sokoban
-        elif name == ProblemInstance.domains[4]:
-            return Witness
-        elif name == ProblemInstance.domains[5]:
             return TSP
-        elif name == ProblemInstance.domains[6]:
-            return RectangularTile
-        elif name == ProblemInstance.domains[7]:
+        elif name == ProblemInstance.domains[2]:
             return BlocksWorld
         else:
             assert False, "unknown domain name as input. domain must be from " + str(ProblemInstance.domains) + " and " + name + " not found"

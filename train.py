@@ -13,44 +13,12 @@ from Solvers.Abstract_Solver import Statistics
 from Solvers.A_Star import AStar
 import torch
 from sklearn.utils import shuffle
+import matplotlib.pyplot as plt
 indir = "dataset/"
 
 LOSS_THRESHOLD = 0.2
 EPSILON = 0.1
 MAX_EPOCHS = 300
-
-class scaled_MSE_loss(torch.nn.Module):
-    def __init__(self):
-        super(scaled_MSE_loss, self).__init__()
-
-    def forward(self, target, output):
-        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.mean((1 / (target[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-
-class pth_norm_loss(torch.nn.Module):
-    def __init__(self):
-        super(pth_norm_loss, self).__init__()
-        self.p = 10
-
-    def forward(self, target, output):
-        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.mean((target[:, 0] - output[:, 0]) ** self.p)
-
-class weighted_MSE_loss(torch.nn.Module):
-    def __init__(self):
-        super(weighted_MSE_loss, self).__init__()
-
-    def forward(self, target, output, weights):
-        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.mean(weights * (target[:, 0] - output[:, 0]) ** 2)
-
-class SE_loss(torch.nn.Module):
-    def __init__(self):
-        super(SE_loss, self).__init__()
-
-    def forward(self, target, output):
-        #return torch.mean((1 / (target[:, 0] ** 2) + 1 / (output[:, 0] ** 2)) * (target[:, 0] - output[:, 0]) ** 2)
-        return torch.sum((target[:, 0] - output[:, 0]) ** 2)
 
 class sigmod_based_MSE_loss(torch.nn.Module):
     def __init__(self):
@@ -98,17 +66,6 @@ def parse_line(p, line):
 def mse(X, Y):
     return np.mean((X-Y) ** 2, axis = 0)
 
-def weighted_mse(labels,predicted):
-    idx, counts = np.unique(labels, return_counts=True)
-    mapping = np.zeros((idx.max()))
-    for i,index in enumerate(idx):
-        mapping[index] = counts[i]
-    weights = (len(labels) - mapping[labels]) / len(labels)
-    return np.mean(weights * (labels-predicted) ** 2, axis = 0)
-
-def scaled_mse(target, output):
-    return np.mean((1 / (target ** 2) + 1 / (output ** 2)) * (target-output) ** 2, axis = 0)
-
 class Tester:
     def __init__(self, options):
         assert options.outfile and options.domain and options.max_size and options.min_size, "arguments must include: outfile, domain, " \
@@ -147,13 +104,16 @@ class Tester:
             #percent_factor = 0.2
             print("=" * 40, mid, "=" * 40, problem_size)
             num_samples = self.max_steps #TODO: or (percent_factor / 100) * math.factorial(problem_size)
-            does_fit = self.does_fit_2(problem_size, model, num_samples, EPSILON / 2)
+            #does_fit = self.does_fit_2(problem_size, model, num_samples, EPSILON / 2)
+            does_fit = self.does_fit(problem_size, model, num_samples)
             if does_fit:
                 maxi_idx = mid
                 self.saved_breaking_points[maxi_idx] = problem_size
             else:
                 mini_idx = mid
         self.model = model
+        
+        return FCNN([input_dim] + [maxi_idx] + [1]).count_parameters()
         return maxi_idx
 
     def search_depth(self, problem_size):
@@ -184,7 +144,12 @@ class Tester:
             else:
                 mini_idx = mid
         self.model = model
-        return maxi_idx
+        
+        if maxi_idx % 2 == 0:
+            return ResNN([input_dim] + [layer_size, layer_size, 1], (maxi_idx-1) // 2, use_batch_norm=True).count_parameters()
+        
+        return ResNN([input_dim] + [layer_size, 1], (maxi_idx-1) // 2, use_batch_norm = True).count_parameters()
+
 
     def get_data(self, problem_size, num):
         with open(os.path.join(indir, self.outfile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
@@ -419,7 +384,7 @@ if __name__ == '__main__':
     ##################################
 
     for i in range(options.min_size, options.max_size + 1):
-            breaking_point.append(t.search_depth(i))
+            breaking_point.append(t.search_width(i))
             #test_losses.append(t.testset_results(t.model, i, t.max_steps))
             test_losses.append(t.last_test_loss)
             print(i, ", ", end="", file=t.breaking_point_logger)
@@ -428,3 +393,9 @@ if __name__ == '__main__':
             k = list(sorted(t.saved_breaking_points.keys()))
 
     print(breaking_point, list(range(options.min_size, options.max_size + 1)), test_losses)
+    plt.scatter(list(range(options.min_size, options.max_size + 1)), breaking_point)
+    plt.title(options.domain)
+    plt.xlabel('Problem Size')
+    plt.ylabel('Num Parameters (log scale)')
+    plt.yscale('log')
+    plt.show()
