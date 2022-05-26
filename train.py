@@ -36,7 +36,7 @@ def readCommand(argv):
     parser = optparse.OptionParser(description = 'Create problem instances and store them to file in dir'
                                                  '"Problem_instances".')
     parser.add_option("-o", "--outfile", dest="outfile", type="string",
-                      help="write output to FILE", metavar="FILE")
+                      help="Path to data set files (files are generated as <input>_3.txt", metavar="FILE")
     parser.add_option("-s", "--seed", type="int", dest="seed", default=random.randint(0, 9999999999),
                       help = 'seed integer for random stream')
     parser.add_option("-d", "--domain", dest="domain", type="string",
@@ -48,7 +48,7 @@ def readCommand(argv):
                       help='min problem size. E.g., number of pancakes in pancake domain or '
                            'dimensionality in tile and rubik')
     parser.add_option("-i", "--max_steps", type="int", dest="max_steps", default=100,
-                      help='Maxiumum number of steps')
+                      help='Max size of dataset to be considered')
     (options, args) = parser.parse_args(argv)
     return options
 
