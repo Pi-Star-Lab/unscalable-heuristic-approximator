@@ -24,3 +24,8 @@ replace search_width search_depth
 ```
 
 Note: Dataset for TSP is not provided due to size constraints
+
+nevertheless dataset can be generated as
+```
+python generate_dataset.py -d tsp -n 12 -m 3 -o set -i 100000 
+```
