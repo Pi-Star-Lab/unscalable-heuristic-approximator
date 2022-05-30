@@ -35,8 +35,8 @@ class sigmod_based_MSE_loss(torch.nn.Module):
 def readCommand(argv):
     parser = optparse.OptionParser(description = 'Create problem instances and store them to file in dir'
                                                  '"Problem_instances".')
-    parser.add_option("-o", "--outfile", dest="outfile", type="string",
-                      help="Path to data set files (files are generated as <input>_3.txt", metavar="FILE")
+    parser.add_option("-o", "--datafile", dest="datafile", type="string",
+                      help="Path to data set files (file names are generated as <input>_3.txt", metavar="FILE")
     parser.add_option("-s", "--seed", type="int", dest="seed", default=random.randint(0, 9999999999),
                       help = 'seed integer for random stream')
     parser.add_option("-d", "--domain", dest="domain", type="string",
@@ -68,7 +68,7 @@ def mse(X, Y):
 
 class Tester:
     def __init__(self, options):
-        assert options.outfile and options.domain and options.max_size and options.min_size, "arguments must include: outfile, domain, " \
+        assert options.datafile and options.domain and options.max_size and options.min_size, "arguments must include: datafile, domain, " \
                                                                     "and problem size"
         random.seed(options.seed)
         self.cls = prob.get_domain_class(options.domain)
@@ -78,7 +78,7 @@ class Tester:
         print("[", end = " ",file=self.breaking_point_logger)
         self.breaking_point_logger.flush()
         self.saved_breaking_points = {} # neurons to problem size mapping
-        self.outfile = options.outfile
+        self.datafile = options.datafile
         #self.neuron_range = [2, 800000]
         self.neuron_range = [2, 4000]
         self.layer_range = [0, 16]
@@ -152,7 +152,7 @@ class Tester:
 
 
     def get_data(self, problem_size, num):
-        with open(os.path.join(indir, self.outfile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
+        with open(os.path.join(indir, self.datafile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
             samples = 0
             X, Y = [], []
             while samples < num:
@@ -166,7 +166,7 @@ class Tester:
             X = np.array(X)
             Y = np.array(Y)
 
-        if "tsp" in self.outfile:
+        if "tsp" in self.datafile:
             print("TSP troubles")
             Y = Y / 10
         return shuffle(X, Y)
@@ -321,7 +321,7 @@ class Tester:
         return np.expand_dims(state.as_tensor(), axis = 0)
 
     def get_states(self, problem_size, min_num, max_num):
-        with open(os.path.join(indir, self.outfile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
+        with open(os.path.join(indir, self.datafile + '_{}.txt'.format(problem_size)), 'r') as problem_file:
             samples = 0
             X = []
             while samples < max_num:
