@@ -24,6 +24,7 @@ replace search_width search_depth
 ```
 The data for test plots are saved in variable called `test_losses'
 To obtain results in Figure 1 in full version of paper, use replace does_fit() with does_fit_2
+To change maximum number of neurons/layers over which binary search takes place change on line 83, 84
 
 Note: Dataset for TSP is not provided due to size constraints
 
