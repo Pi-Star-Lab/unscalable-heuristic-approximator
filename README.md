@@ -1,15 +1,17 @@
 # The (Un)Scalability of Heuristic Approximators for NP-Hard Search Problems
 
-Official Repository for "[https://openreview.net/forum?id=33wyZ4xTIx]((Un)Scalability of Heuristic Approximators for NP-Hard Search Problems)"
+Official Repository for "[https://openreview.net/forum?id=33wyZ4xTIx](\(Un\)Scalability of Heuristic Approximators for NP-Hard Search Problems)"
 
-Setup the environment
+
+# Setup
 ```
 conda create --name <env> --file <this file>
 ```
 Install [pytorch](https://pytorch.org/get-started/locally/)
 
 
-Run the code as
+# Run 
+Run as 
 ```
 python train.py -d pancake -n 15 -m 4 -o pancake/set_2 -i 1000000
 ```
