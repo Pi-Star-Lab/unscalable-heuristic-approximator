@@ -26,3 +26,18 @@ Experiments on fixed depth can be obtained by changing on line 360
 ```
 replace search_width search_depth 
 ```
+
+# Citing
+If you found our repository/experiments useful please consider citing our work as:
+
+```
+  @inproceedings{pendurkar2022nphsearch,
+      title={The (Un)Scalability of Heuristic Approximators for NP-Hard Search Problems},
+      author={Pendurkar, Sumedh and Huang, Taoan and Koenig, Sven and Sharon, Guni},
+      booktitle={In I (Still) Can't Believe It's Not Better! NeurIPS 2022 Workshop},
+      volume={},
+      number={},
+      pages={},
+      year={2022}
+  }
+```
