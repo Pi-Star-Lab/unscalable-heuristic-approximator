@@ -1,6 +1,6 @@
 # The (Un)Scalability of Heuristic Approximators for NP-Hard Search Problems
 
-Official Repository for "[https://openreview.net/forum?id=33wyZ4xTIx](\(Un\)Scalability of Heuristic Approximators for NP-Hard Search Problems)"
+Official Repository for "[(Un)Scalability of Heuristic Approximators for NP-Hard Search Problems](https://openreview.net/forum?id=33wyZ4xTIx)"
 
 
 # Setup
