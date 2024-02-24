@@ -1,6 +1,6 @@
-# The (Un)Scalability of Heuristic Approximators for NP-Hard Search Problems
+# The (Un)Scalability of Informed Heuristic Function Estimation in NP-Hard Search Problems
 
-Official Repository for "[(Un)Scalability of Heuristic Approximators for NP-Hard Search Problems](https://openreview.net/forum?id=33wyZ4xTIx)"
+Official Repository for the paper titled "[The (Un)Scalability of Informed Heuristic Function Estimation in NP-Hard Search Problems]([https://openreview.net/forum?id=33wyZ4xTIx](https://openreview.net/pdf?id=JllRdycmLk))"
 
 
 # Setup
@@ -31,13 +31,14 @@ replace search_width search_depth
 If you found our repository/experiments useful please consider citing our work as:
 
 ```
-  @inproceedings{pendurkar2022nphsearch,
-      title={The (Un)Scalability of Heuristic Approximators for NP-Hard Search Problems},
-      author={Pendurkar, Sumedh and Huang, Taoan and Koenig, Sven and Sharon, Guni},
-      booktitle={In I (Still) Can't Believe It's Not Better! NeurIPS 2022 Workshop},
-      volume={},
-      number={},
-      pages={},
-      year={2022}
-  }
+@article{
+pendurkar2023the,
+title={The (Un)Scalability of Informed Heuristic Function Estimation in {NP}-Hard Search Problems},
+author={Sumedh Pendurkar and Taoan Huang and Brendan Juba and Jiapeng Zhang and Sven Koenig and Guni Sharon},
+journal={Transactions on Machine Learning Research},
+issn={2835-8856},
+year={2023},
+url={https://openreview.net/forum?id=JllRdycmLk},
+note={}
+}
 ```
